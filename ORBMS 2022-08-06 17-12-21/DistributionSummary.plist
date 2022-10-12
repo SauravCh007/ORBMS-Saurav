@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ORBMS.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>34</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>34E58C3A8115445A68B6E53BD68B30B02BC93731</string>
+				<key>dateExpires</key>
+				<string>30/06/23</string>
+				<key>type</key>
+				<string>Apple Development</string>
+			</dict>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>9D62P69KGG.com.onlineretailbms</string>
+				<key>com.apple.developer.team-identifier</key>
+				<string>9D62P69KGG</string>
+				<key>get-task-allow</key>
+				<true/>
+			</dict>
+			<key>name</key>
+			<string>ORBMS.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>521b8fde-097f-4bbe-9a89-8a2dc3a3d468</string>
+				<key>dateExpires</key>
+				<string>26/07/23</string>
+				<key>name</key>
+				<string>iOS Team Provisioning Profile: com.onlineretailbms</string>
+			</dict>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>9D62P69KGG</string>
+				<key>name</key>
+				<string>Knovial LLC</string>
+			</dict>
+			<key>versionNumber</key>
+			<string>1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>

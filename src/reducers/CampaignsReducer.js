@@ -1,0 +1,47 @@
+import { Alert } from 'react-native';
+import {
+  CAMPAIGN_GETCAMPAIGNS_LOADING,
+  CAMPAIGN_GETCAMPAIGNS_SUCCESS,
+  CAMPAIGN_GETCAMPAIGNS_FAIL,
+  CAMPAIGN_ADDCAMPAIGNSTOCONTACT_LOADING,
+  CAMPAIGN_ADDCAMPAIGNSTOCONTACT_SUCCESS,
+  CAMPAIGN_ADDCAMPAIGNSTOCONTACT_FAIL,
+  CAMPAIGN_EDITCAMPAIGN_LOADING,
+  CAMPAIGN_EDITCAMPAIGN_SUCCESS,
+  CAMPAIGN_EDITCAMPAIGN_FAIL,
+  CAMPAIGN_REMOVECAMPAIGN_LOADING,
+  CAMPAIGN_REMOVECAMPAIGN_SUCCESS,
+  CAMPAIGN_REMOVECAMPAIGN_FAIL,
+  CAMPAIGN_IDLE,
+} from '../actions/types';
+
+const INITIAL_STATE = {
+  campaignsStatus: '',
+  campaignsError: '',
+  campaignsList: [],
+};
+
+export default (state = INITIAL_STATE, action) => {
+  switch (action.type) {
+    case CAMPAIGN_GETCAMPAIGNS_LOADING:
+    case CAMPAIGN_ADDCAMPAIGNSTOCONTACT_LOADING:
+    case CAMPAIGN_EDITCAMPAIGN_LOADING:
+    case CAMPAIGN_REMOVECAMPAIGN_LOADING:
+    case CAMPAIGN_IDLE:
+
+    case CAMPAIGN_ADDCAMPAIGNSTOCONTACT_SUCCESS:
+    case CAMPAIGN_REMOVECAMPAIGN_SUCCESS:
+    case CAMPAIGN_EDITCAMPAIGN_SUCCESS:
+
+      return { ...state, campaignsStatus: action.type };
+    case CAMPAIGN_GETCAMPAIGNS_SUCCESS:
+      return { ...state, campaignsStatus: action.type, campaignsList: action.payload };
+    case CAMPAIGN_GETCAMPAIGNS_FAIL:
+    case CAMPAIGN_ADDCAMPAIGNSTOCONTACT_FAIL:
+    case CAMPAIGN_EDITCAMPAIGN_FAIL:
+    case CAMPAIGN_REMOVECAMPAIGN_FAIL:
+      return { ...state, campaignsStatus: action.type, campaignsError: action.payload };
+    default:
+      return state;
+  }
+};
