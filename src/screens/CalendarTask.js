@@ -139,6 +139,7 @@ class CalendarTask extends Component {
 
   constructor(props) {
     console.log("propsC",props)
+
     // useFocusEffect(
     //   React.useCallback(() => {
     //     const unsubscribe = CalendarTask();
@@ -171,10 +172,16 @@ class CalendarTask extends Component {
     this.selectedRow;
     this.component = [];
     console.log("first",this.props.settings)
-    this.render();
+    // this.render();
   }
 
+//  function(params) {
+//  setTimeout(() => {
+//     this.setState({showCalander:true})
+//   }, 300);
+//  }
   componentDidMount() {
+    
     
    this.props.getCalendarTasks
     this.props.navigation.setOptions({
@@ -197,7 +204,7 @@ class CalendarTask extends Component {
             }>
             <Text
               style={{
-                color: this.props.settings.theme.textPrimary,
+                color: '#696969',
                 fontSize: 16,
                 fontWeight: '700',
                 fontFamily: global.font_main,
@@ -256,9 +263,11 @@ class CalendarTask extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    console.log("show",this.state.showCalander)
-    console.log("calandarChange")
-    this.setState({showCalander:true})
+
+
+    setTimeout(() => {
+      this.setState({showCalander:true})
+    }, 5000);
     if (nextProps.tasksStatus === TASK_DELETETASK_SUCCESS) {
       // console.log(nextProps, 'nextProps nextProps')
       this.refresh();
@@ -268,7 +277,7 @@ class CalendarTask extends Component {
 
   // componentWillReceiveProps(nextProps) {
     // console.log(nextProps.tasksCalendarTasks, 'nextProps.tasksCalendarTasks');
-    this.render();
+  
     let newItems = [];
     let lastItem = null;
     this.setTodayDate();
@@ -777,7 +786,7 @@ class CalendarTask extends Component {
       year: `${this.state.calendarYear}`,
       flag: 1,
     });
-    this.render();
+    // this.render();
   };
 
   setTodayDate = () => {
@@ -816,7 +825,7 @@ class CalendarTask extends Component {
     return (
       <ScrollView
       style={{
-        backgroundColor:this.props.settings.theme.bgPrimary
+        backgroundColor: this.props.settings.theme.mode === 'light'?'#fff':'#000'
       }}
         refreshControl={
           <RefreshControl
@@ -842,7 +851,7 @@ class CalendarTask extends Component {
             position: 'relative',
           }}
           date={
-            this.state.calendarItems.length > 0 ? this.state.todayDate : ''
+            this.state?.calendarItems?.length > 0 ? this.state?.todayDate : ''
           }
           onDateChanged={this.onDateChanged}
           onMonthChange={this.onMonthChange}

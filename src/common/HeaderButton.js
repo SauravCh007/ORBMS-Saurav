@@ -14,7 +14,7 @@ export const HeaderButton = ({
   mode,
   disabled,
 }) => {
-  console.log(disabled, 'disabled');
+  console.log(mode, 'disabledmode');
   return (
     <TouchableOpacity
       disabled={disabled}
@@ -23,7 +23,7 @@ export const HeaderButton = ({
       onPress={onPress} >
       <Image source={icon} style={[global.styles.imgContain, 
         { opacity: disabled ? 0.3 : 1 },
-        { tintColor: mode && mode === 'dark' ? global.color_ltgray : global.color_darkgray, }, imgStyle]} />
+        { tintColor: mode && mode === 'dark' ? '#000' : '#696969', }, imgStyle]} />
     </TouchableOpacity>
   )
 }

@@ -71,7 +71,7 @@ class Emails extends Component {
   };
 
   constructor(props) {
-   
+   console.log("sheduleemail",props)
     super(props);
     this.state = {
       index: 0,
@@ -458,6 +458,7 @@ class Emails extends Component {
         break;
       case 'scheduled':
         emails = this.props.emailScheduled[cm]
+        console.log('scheduled',this.props.emailScheduled)
           ? this.props.emailScheduled[cm]
           : [];
         break;
@@ -504,7 +505,7 @@ class Emails extends Component {
           }
         }}
         scrollEventThrottle={160}>
-        {emails.length <= 0 ? (
+        {emails?.length <= 0 ? (
           <EmptyList
             text={'No emails'}
             textColor={this.props.settings.theme.textSecondary}

@@ -146,6 +146,14 @@ class Contacts extends Component {
     //BackHandler.removeEventListener('hardwareBackPress', this.handleBackButton);
   }
 
+//  useEffect(() => {
+//     let isMounted = true;               // note mutable flag
+//     someAsyncOperation().then(data => {
+//       if (isMounted) setState(data);    // add conditional check
+//     })
+//     return () => { isMounted = false }; // cleanup toggles value, if unmounted
+//   }, []); 
+
 
   handleBackButton() {
       return true;
