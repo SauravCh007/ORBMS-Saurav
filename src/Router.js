@@ -51,7 +51,7 @@ class Router2 extends Component {
     this.props.getSettings();
 
     if (Platform.OS !== 'ios' && this.props.settings.theme.mode !== 'light') {
-      setTimeout(() => this.props.setAppMode({mode: 'light'}), 500);
+      setTimeout(() => this.props.setAppMode({mode: 'light'}), 300);
     }
   }
 
@@ -391,8 +391,8 @@ const commonNavbarDynamic = theme => {
       shadowOffset: {
         height: 0,
       },
-      elevation: 0, //remove shadow on Android
-      shadowOpacity: 0, //remove shadow on iOS
+      // elevation: 0, //remove shadow on Android
+      // shadowOpacity: 0, //remove shadow on iOS
     },
     headerTitleStyle: {
       alignSelf: 'center',
@@ -417,8 +417,8 @@ const commonNavbar = {
     shadowOffset: {
       height: 0,
     },
-    elevation: 0, //remove shadow on Android
-    shadowOpacity: 0, //remove shadow on iOS
+    // elevation: 0, //remove shadow on Android
+    // shadowOpacity: 0, //remove shadow on iOS
   },
   headerTitleStyle: {
     alignSelf: 'center',

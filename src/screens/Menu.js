@@ -8,6 +8,7 @@ import {
   Switch,
   Linking,
   Platform,
+  DevSettings
 } from 'react-native';
 import {connect} from 'react-redux';
 import {setAppMode, signOutUser} from '../actions';
@@ -84,6 +85,7 @@ class Menu extends Component {
   }
 
   toggleAppMode() {
+    // DevSettings.reload()
     this.props.setAppMode({
       mode: this.props.settings.theme.mode === 'dark' ? 'light' : 'dark',
     });
@@ -109,6 +111,7 @@ class Menu extends Component {
   }
 
   appModeValue() {
+    // NativeModules.DevSettings.reload();
     return this.props.settings.theme.mode === 'dark';
     // return false;
   }
@@ -213,7 +216,9 @@ class Menu extends Component {
           renderItem={({section, item}) => {
             return (
               <TouchableOpacity
-                onPress={item.onPress}
+                onPress={()=>{
+                  // DevSettings.reload()
+                  item.onPress}}
                 style={{
                   paddingHorizontal: 20,
                 }}>

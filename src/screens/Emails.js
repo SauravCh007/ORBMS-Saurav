@@ -586,12 +586,14 @@ class Emails extends Component {
   getCurrentBoxEmails() {
     let emails = [];
     let cm = this.props.emails.emailCurrentMailbox;
+    console.log("cmmessase",this.props.emails.emailCurrentMailbox)
     switch (this.state.routes[this.state.index].key) {
       case 'inbox':
         emails = this.props.emailInbox[cm] ? this.props.emailInbox[cm] : [];
         break;
       case 'sent':
         emails = this.props.emailSent[cm] ? this.props.emailSent[cm] : [];
+        console.log("getCurrentBoxEmails",emails)
         break;
       case 'scheduled':
         emails = this.props.emailScheduled[cm]

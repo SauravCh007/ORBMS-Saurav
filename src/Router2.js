@@ -277,8 +277,8 @@ const commonNavbarDynamic = (theme) => {
       shadowOffset: {
           height: 0,
       },
-      elevation: 0,       //remove shadow on Android
-      shadowOpacity: 0,   //remove shadow on iOS
+      // elevation: 0,       //remove shadow on Android
+      // shadowOpacity: 0,   //remove shadow on iOS
     },
     headerTitleStyle: {
       alignSelf: 'center',
@@ -303,8 +303,8 @@ const commonNavbar = {
     shadowOffset: {
         height: 0,
     },
-    elevation: 0,       //remove shadow on Android
-    shadowOpacity: 0,   //remove shadow on iOS
+    // elevation: 0,       //remove shadow on Android
+    // shadowOpacity: 0,   //remove shadow on iOS
   },
   headerTitleStyle: {
     alignSelf: 'center',
@@ -381,3 +381,4 @@ const mapStateToProps = ({ settings }) => {
 };
 
 export default connect(mapStateToProps, { getSettings, setAppMode })(Router2);
+9002610316

@@ -72,7 +72,7 @@ export const getCalendarTasks = ({year, month, flag = 0}) => {
             } else {
               //Alert.alert(json);
               AsyncStorage.setItem(`${year}+${month}`, JSON.stringify(json));
-              console.log('tasks from api- **********', json);
+              // console.log('tasks from api- **********', json);
               dispatch({type: TASK_CALENDARTASKS_SUCCESS, payload: json});
             }
           })
