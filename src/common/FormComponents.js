@@ -1,4 +1,4 @@
-import React, {Component, useRef} from 'react';
+import React, { Component, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,16 @@ import {
 } from 'react-native';
 
 import '../utils/Global';
-import DatePicker from 'react-native-datepicker';
+// import DatePicker from 'react-native-date-picker'
+import DateTimePicker from '@react-native-community/datetimepicker';
 import InputScrollView from 'react-native-input-scroll-view';
+import DatePicker from 'react-native-datepicker';
 export const FormInput = ({
   label,
   maxLength,
   textContentType,
   dataDetectorTypes,
- formate,
+  formate,
   placeholder,
   value,
   onChangeText,
@@ -59,8 +61,8 @@ export const FormInput = ({
       <View
         style={[
           styles.inputBoxContainer,
-          {paddingVertical: multiline ? 15 : 0},
-          {backgroundColor: bgColor},
+          { paddingVertical: multiline ? 15 : 0 },
+          { backgroundColor: bgColor },
           inputContainerStyle,
         ]}>
         <TextInput
@@ -69,7 +71,7 @@ export const FormInput = ({
           style={[
             styles.inputField,
             textStyle,
-            {color: editable ? textColor : '#C0C0C0', fontSize: 15},
+            { color: editable ? textColor : '#C0C0C0', fontSize: 15 },
           ]}
           placeholder={placeholder}
           placeholderTextColor={global.color_medgray}
@@ -85,7 +87,7 @@ export const FormInput = ({
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           blurOnSubmit={blurOnSubmit}
-          
+
           keyboardType={keyboardType}
           editable={editable}
           onFocus={onFocus}
@@ -114,7 +116,7 @@ export const FormDropdown = ({
 }) => {
   return (
     <View style={styles.inputContainer}>
-      <Text style={[styles.inputLabel, labelStyle, {fontSize: labelSize}]}>
+      <Text style={[styles.inputLabel, labelStyle, { fontSize: labelSize }]}>
         {label}
       </Text>
       <TouchableOpacity
@@ -128,7 +130,7 @@ export const FormDropdown = ({
             backgroundColor: bgColor,
           },
         ]}>
-        <Text style={[styles.inputField, {flex: 1}]}>{value}</Text>
+        <Text style={[styles.inputField, { flex: 1 }]}>{value}</Text>
         <Image source={icon} style={styles.iconStyle} />
       </TouchableOpacity>
     </View>
@@ -147,7 +149,7 @@ export const FormTypeDropdown = ({
 }) => {
   return (
     <View style={styles.inputContainer}>
-      <Text style={[styles.inputLabel, labelStyle, {fontSize: labelSize}]}>
+      <Text style={[styles.inputLabel, labelStyle, { fontSize: labelSize }]}>
         {label}
       </Text>
       <TouchableOpacity
@@ -161,7 +163,7 @@ export const FormTypeDropdown = ({
             backgroundColor: bgColor,
           },
         ]}>
-        <Text style={[styles.inputField, {flex: 1}]}>{value}</Text>
+        <Text style={[styles.inputField, { flex: 1 }]}>{value}</Text>
         <Image source={icon} style={styles.iconStyle} />
       </TouchableOpacity>
     </View>
@@ -188,7 +190,7 @@ export const FormDatePicker = ({
 }) => {
   return (
     <View style={styles.inputContainer}>
-      <Text style={[styles.inputLabel, labelStyle, {fontSize: labelSize}]}>
+      <Text style={[styles.inputLabel, labelStyle, { fontSize: labelSize }]}>
         {label}
       </Text>
       <TouchableOpacity
@@ -200,41 +202,54 @@ export const FormDatePicker = ({
             backgroundColor: bgColor,
           },
         ]}>
-        {Platform.OS === 'ios' ? (
-          <DatePicker
+        {/* {Platform.OS === 'ios' ? ( */}
+        <DatePicker
+        modal
+        open={open}
+        date={value}
+        onConfirm={(date) => {
+          setOpen(false)
+          setDate(date)
+        }}
+        onCancel={() => {
+          setOpen(false)
+        }}
+      />
+          <DateTimePicker
             ref={ref => (datePickerRef = ref)}
-            style={[styles.inputText, {flex: 1, marginVertical: -7}]}
+            style={[styles.inputText, { flex: 1, marginVertical: -7 }]}
             date={value}
             mode={mode}
             placeholder={placeholder}
             format={format}
-            showTime={{use12Hours: true, format: 'hh:mm A'}}
+            showTime={{ use12Hours: true, format: 'hh:mm A' }}
             // format={format}
             confirmBtnText={confirmBtnText}
             cancelBtnText={cancelBtnText}
-            customStyles={{...styles.datePickerStyle, ...datePickerStyle}}
+            customStyles={{ ...styles.datePickerStyle, ...datePickerStyle }}
             onDateChange={onDateChange}
           />
-        ) : (
-          <TextInput
+        {/* ) : ( */}
+
+          {/* <TextInput
             style={[styles.inputField]}
             placeholder={placeholder}
             value={`${value}`}
             onFocus={onDateChange}
-          />
-        )}
+          /> */}
+        {/* )} */}
 
-        {Platform.OS === 'ios' ? (
+        {/* {Platform.OS === 'ios' ? ( */}
           <TouchableHighlight onPress={() => datePickerRef.onPressDate()}>
             <Image source={icon} style={styles.iconStyle} />
           </TouchableHighlight>
-        ) : (
-          <TouchableHighlight
-            // onPress={() => datePickerRef.onPressDate()}
+        {/* ) : ( */}
+          {/* <TouchableHighlight
+            // onPress={() => datePickerRef.onPressDate()}>
             onPress={() => console.log(datePickerRef, 'DADADADA')}>
             <Image source={icon} style={styles.iconStyle} />
-          </TouchableHighlight>
-        )}
+          </TouchableHighlight> */}
+        {/* )} */}
       </TouchableOpacity>
     </View>
   );
@@ -250,9 +265,9 @@ export const FormButton = ({
   return (
     <TouchableOpacity
       disabled={disabled}
-      style={[styles.buttonContainer, {opacity: disabled ? 0.6 : 1}, style]}
+      style={[styles.buttonContainer, { opacity: disabled ? 0.6 : 1 }, style]}
       onPress={onPress}>
-      <Text style={[styles.buttonText, {color: textColor}]}>{text}</Text>
+      <Text style={[styles.buttonText, { color: textColor }]}>{text}</Text>
     </TouchableOpacity>
   );
 };
@@ -266,7 +281,7 @@ const styles = {
     justifyContent: 'center',
     alignSelf: 'center',
     shadowColor: '#432587',
-    shadowOffset: {width: 0, height: 10},
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
@@ -322,8 +337,8 @@ const styles = {
     datePicker: {
       // paddingLeft: (global.deviceWidth - 200) / 2,
     },
-    placeholderText: {fontSize: 16, color: global.color_white_3, margin: 0},
-    dateIcon: {width: 0, height: 0, margin: 0},
+    placeholderText: { fontSize: 16, color: global.color_white_3, margin: 0 },
+    dateIcon: { width: 0, height: 0, margin: 0 },
     dateInput: {
       marginRight: -10,
       padding: 0,
@@ -333,7 +348,7 @@ const styles = {
       width: '100%',
     },
 
-    btnTextConfirm: {color: global.color_theme, fontWeight: '700'},
-    dateText: {textAlign: 'center', fontSize: 16, color: global.color_white},
+    btnTextConfirm: { color: global.color_theme, fontWeight: '700' },
+    dateText: { textAlign: 'center', fontSize: 16, color: global.color_white },
   },
 };

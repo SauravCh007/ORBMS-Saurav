@@ -25,8 +25,8 @@ import {
 class EditContact extends Component {
 
   static navigationOptions = ({ navigation }) => {
-      const { params } = navigation.state;
-      return params;
+    const { params } = navigation.state;
+    return params;
   };
 
   constructor(props) {
@@ -111,7 +111,7 @@ class EditContact extends Component {
             }
           </View>
         </KeyboardAwareScrollView>
-        <FormButton text={'test'} style={global.styles.quickButtonsContainer}/>
+        <FormButton text={'test'} style={global.styles.quickButtonsContainer} />
         <ModalAlert
           isVisible={false}
           title={'Success!'}
@@ -145,23 +145,23 @@ class EditContact extends Component {
             { text: 'Test', checked: true },
             { text: 'Test', checked: true },
             { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
-              { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
+            { text: 'Test', checked: true },
           ]}
         />
       </View>
@@ -192,4 +192,4 @@ const mapStateToProps = ({ settings }) => {
   };
 };
 
-export default connect(mapStateToProps, { })(EditContact);
+export default connect(mapStateToProps, {})(EditContact);

@@ -22,7 +22,7 @@ class EditAccountInfo extends Component {
       // PARAMS
       first_name: '',
       last_name: '',
-      company: '',
+      companyname: '',
       phone: '',
       email: '',
       website: '',
@@ -99,7 +99,7 @@ class EditAccountInfo extends Component {
     let fields = [
       'first_name',
       'last_name',
-      'company',
+      'companyname',
       'phone',
       'email',
       'website',
@@ -122,7 +122,7 @@ class EditAccountInfo extends Component {
     let fields = [
       'first_name',
       'last_name',
-      'company',
+      'companyname',
       'phone',
       'email',
       'website',
@@ -174,8 +174,8 @@ class EditAccountInfo extends Component {
           <FormInput
             placeholder={'Company Name'}
             label={'Company Name'}
-            value={this.state.company}
-            onChangeText={company => this.setState({ company })}
+            value={this.state.companyname}
+            onChangeText={companyname => this.setState({ companyname })}
             autoCapitalize={'words'}
             textColor={this.props.settings.theme.textPrimary}
             bgColor={this.props.settings.theme.inputBg}

@@ -1,4 +1,4 @@
-import React, {Component, useRef} from 'react';
+import React, { Component, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,13 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import InputScrollView from 'react-native-input-scroll-view';
 import DatePickerIOS from 'react-native-datepicker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import {timestrToSec, formatTime, tConvert, FormatTime} from '../utils/Helper';
-import {connect} from 'react-redux';
+import Datetimepicker from '@react-native-community/datetimepicker';
+import { timestrToSec, formatTime, tConvert, FormatTime } from '../utils/Helper';
+import { connect } from 'react-redux';
 import {
   FormInput,
   FormButton,
@@ -50,12 +51,12 @@ import {
   TASK_DELETETASK_FAIL,
 } from '../actions/types';
 import moment from 'moment';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 class NewTask extends Component {
   _isMounted = false;
-  static navigationOptions = ({navigation}) => {
-    const {params} = navigation.state;
+  static navigationOptions = ({ navigation }) => {
+    const { params } = navigation.state;
     return params;
   };
 
@@ -64,6 +65,7 @@ class NewTask extends Component {
     this.state = {
       title: '',
       dateTime: '',
+      date: '',
       isVisible: false,
       type: '',
       comments: '',
@@ -76,7 +78,7 @@ class NewTask extends Component {
       alertTitle: '',
       alertMessage: '',
       alertButtons: [
-        {text: 'OK', onPress: () => this.setState({alertVisible: false})},
+        { text: 'OK', onPress: () => this.setState({ alertVisible: false }) },
       ],
       alertIcon: null,
 
@@ -84,12 +86,12 @@ class NewTask extends Component {
       alertListTitle: '',
       alertListData: [],
       alertListSelected: [],
-      alertListSave: () => {},
+      alertListSave: () => { },
       alertListType: '',
 
       showModalDelete: false,
 
-      contact: {fullname: '', cid: ''},
+      contact: { fullname: '', cid: '' },
       allowAddContact: true,
     };
     this.inputAccessoryViewID = 'uniqueID';
@@ -142,38 +144,51 @@ class NewTask extends Component {
     let contact =
       this.props.route.params && this.props.route.params.contact
         ? this.props.route.params.contact
-        : {fullname: '', cid: ''};
+        : { fullname: '', cid: '' };
 
     console.log('vvv', this.props.route.params.task);
     if (this.props.route.params && this.props.route.params.task) {
       // console.log(this.props.route.params.task, 'this.props.route.params.route');
       let task = this.props.route.params.task;
       console.log('######', task.date);
+      console.log('#########', task.dateTime);
+      console.log('######', this.props.route.params.route);
       // console.log(task, 'task+++++++++++++++++++++',this.props.route.params.contact);
       setTimeout(() => {
-        this.props.route.params.route == 'CalendarStack' || 'TaskList'
-          ? this.setState({
-              title: task.title,
-              dateTime:
-                typeof task.dateString == 'undefined'
-                  ? moment(task.date.split(' ')[0]).format('MM-DD-YYYY') +
-                    ' ' +
-                    FormatTime(task.date.split(' ')[1])
-                  : task.dateString + ' ' + task.hour,
-              type: task.type ? task.type : '',
-              comments: task.comment ? task.comment : '',
-              status: task.status ? task.status : '',
-              contact: task.contact,
-            })
-          : this.setState({
-              title: task.title,
-              dateTime: task.dateTime,
-              type: task.type ? task.type : '',
-              comments: task.comment ? task.comment : '',
-              status: task.status ? task.status : '',
-              contact,
-            });
+        if (this.props.route.params.route == 'ContactDetails') {
+          this.setState({
+            title: task.title ? task.title : '',
+            dateTime: task.dateTime ? task.dateTime : '',
+            date: task.date ? task.date : '',
+            // typeof task.dateString == 'undefined'
+            //   ? moment(task.date.split(' ')[0]).format('MM-DD-YYYY') +
+            //     ' ' +
+            //     FormatTime(task.date.split(' ')[1])
+            //   : task.dateString + ' ' + task.hour,
+            // contact,
+            type: task.type ? task.type : '',
+            comments: task.comment ? task.comment : '',
+            status: task.status ? task.status : '',
+            contact: task.contact ? task.contact : ''
+          })
+        }
+        else if (this.props.route.params.route == 'CalendarStack' || 'TaskList') {
+          console.log("routeCalandar", task.date, task.dateTime)
+          console.log('#############', moment(task?.date).format("YYYY-MM-DD hh:mm:ss"));
+          let datee = moment(task?.date).format("YYYY-MM-DD hh:mm:ss")
+          this.setState({
+            title: task.title,
+            dateTime: datee,
+
+            date: task?.date ? moment(task.date?.split(' ')[0]).format('MM-DD-YYYY') + " " + FormatTime(task?.date?.split(' ')[1]) : '',
+            type: task.type ? task.type : '',
+            comments: task.comment ? task.comment : '',
+            status: task.status ? task.status : '',
+            contact: task.contact,
+          });
+        }
       }, 200);
+
 
       // console.log('contact task - ' +JSON.stringify(this.props.route.params.contact));
     } else {
@@ -208,7 +223,8 @@ class NewTask extends Component {
           <View style={global.styles.headerButtonsContainer}>
             <HeaderButton
               icon={global.icon_leftarrow}
-              mode={this.props.settings.theme.mode}
+              // mode={this.props.settings.theme.mode}
+              mode={this.props.settings.theme.mode === "dark" ? '#ffff' : "#696969"}
               onPress={() => this.handleBackButtonClick()}
             />
           </View>
@@ -217,29 +233,29 @@ class NewTask extends Component {
         headerRight:
           this.props.route.params && this.props.route.params.task
             ? () => (
-                <View style={{paddingHorizontal: 20}}>
-                  <TaskCheckBox
-                    size={40}
-                    icon={global.icon_check}
-                    active={this.state.status === '1'}
-                    onPress={() => {
-                      this.setState({
-                        status: this.state.status === '1' ? '0' : '1',
-                      });
-                      this.setNavbar();
+              <View style={{ paddingHorizontal: 20 }}>
+                <TaskCheckBox
+                  size={40}
+                  icon={global.icon_check}
+                  active={this.state.status === '1'}
+                  onPress={() => {
+                    this.setState({
+                      status: this.state.status === '1' ? '0' : '1',
+                    });
+                    this.setNavbar();
 
-                      let task = this.props.route.params.task;
-                      let params = {
-                        did: task.did,
-                        title: task.title,
-                        status: this.state.status === '1' ? '0' : '1',
-                      };
+                    let task = this.props.route.params.task;
+                    let params = {
+                      did: task.did,
+                      title: task.title,
+                      status: this.state.status === '1' ? '0' : '1',
+                    };
 
-                      this.props.editTask(params);
-                    }}
-                  />
-                </View>
-              )
+                    this.props.editTask(params);
+                  }}
+                />
+              </View>
+            )
             : () => <View />,
       });
     }
@@ -247,7 +263,7 @@ class NewTask extends Component {
 
   updateContact(contact) {
     //Alert.alert(JSON.stringify(contact));
-    this.setState({contact});
+    this.setState({ contact });
   }
 
   componentWillUnmount() {
@@ -271,13 +287,12 @@ class NewTask extends Component {
     // Alert.alert(JSON.stringify(list));
     return list;
   }
-
   toggleAlertList(id) {
-    this.setState({type: id});
+    this.setState({ type: id });
   }
 
   checkFields() {
-    const {title, dateTime, type, comments, contact} = this.state;
+    const { title, dateTime, type, comments, contact } = this.state;
     let c = contact;
     // if(typeof dateTime.split(' ')[2] == 'undefined') {
     //   dateTimeNew = this.setDateForTask(dateTime.split(' ')[0])+' '+dateTime.split(' ')[1];
@@ -288,7 +303,7 @@ class NewTask extends Component {
     //   dateTime = dateTime.split(' ')[0]+ ' '+(dateTime.split(' ')[2] == 'PM' ? (formatTime(timestrToSec(dateTime.split(' ')[1]) + timestrToSec('12:00'))) : dateTime.split(' ')[1]);
     // }
     // console.log('button hit++++++++++++++++++++++++++++++++++++', dateTime);
-    if (!c.cid || c.cid === '') {
+    if (!c?.cid || c?.cid === '') {
       this.setState({
         alertVisible: true,
         alertTitle: 'Unable to Save Task',
@@ -309,6 +324,7 @@ class NewTask extends Component {
     } else {
       if (this.props.route.params && this.props.route.params.task) {
         let task = this.props.route.params.task;
+        console.log("this.props.route.params.task", this.state.dateTime)
         let params = {
           did: task.did,
           title,
@@ -320,7 +336,7 @@ class NewTask extends Component {
         console.log('XXXXXXXXXXX', params);
         this.props.editTask(params);
         setTimeout(() => {
-          console.log('()()()()()()()()() data is ', date, {
+          console.log('()()()()()()()()() data is ', params.date, {
             month: moment(dateTime.split(' ')[0], 'MM-DD-YYYY').format('MM'),
             year: moment(dateTime.split(' ')[0], 'MM-DD-YYYY').format('YYYY'),
             flag: 1,
@@ -336,8 +352,8 @@ class NewTask extends Component {
         console.log(
           'XXXXXXXXXXX',
           dateTime.split(' ')[0] +
-            ' ' +
-            this.timeConvert(dateTime.split(' ')[1]),
+          ' ' +
+          this.timeConvert(dateTime.split(' ')[1]),
         );
         this.props.saveTask({
           cid: c.cid,
@@ -442,19 +458,20 @@ class NewTask extends Component {
     let dateTime =
       this.state.dateTime == ''
         ? new Date()
-        : this.state.dateTime.split(' ')[0].split('-')[1] +
-          '-' +
-          this.state.dateTime.split(' ')[0].split('-')[2] +
-          '-' +
-          this.state.dateTime.split(' ')[0].split('-')[0] +
-          ' ' +
-          (this.state.dateTime.split(' ')[2] == 'PM'
-            ? formatTime(
-                timestrToSec(this.state.dateTime.split(' ')[1]) +
-                  timestrToSec('12:00'),
-              )
-            : this.state.dateTime.split(' ')[1]);
-    console.log(new Date(dateTime), 'dateTime');
+        : moment(this.state?.dateTime?.split(' ')[0]).format('MM-DD-YYYY') + " " + FormatTime(this.state.dateTime.split(' ')[1])
+    // this.state.dateTime.split(' ')[0].split('-')[1] +
+    // '-' +
+    // this.state.dateTime.split(' ')[0].split('-')[2] +
+    // '-' +
+    // this.state.dateTime.split(' ')[0].split('-')[0] +
+    // ' ' +
+    // (this.state.dateTime.split(' ')[2] == 'PM'
+    //   ? formatTime(
+    //     timestrToSec(this.state.dateTime.split(' ')[1]) +
+    //     timestrToSec('12:00'),
+    //   )
+    //   : this.state.dateTime.split(' ')[1]);
+    console.log(new Date(dateTime), 'dateTime50');
     return new Date(dateTime);
   };
 
@@ -471,7 +488,7 @@ class NewTask extends Component {
       <View
         style={[
           global.styles.screenContainer,
-          {backgroundColor: this.props.settings.theme.bgSecondary},
+          { backgroundColor: this.props.settings.theme.bgSecondary },
         ]}>
         <KeyboardAwareScrollView
           innerRef={ref => {
@@ -484,7 +501,7 @@ class NewTask extends Component {
           style={styles.container}
           showsVerticalScrollIndicator={false}
           animated={true}
-          // contentContainerStyle={{ paddingHorizontal: 30, paddingTop: 20, paddingBottom: 200 }}
+        // contentContainerStyle={{ paddingHorizontal: 30, paddingTop: 20, paddingBottom: 200 }}
         >
           <ScrollView
             ref={this.scrollRef}
@@ -493,14 +510,14 @@ class NewTask extends Component {
                 animated: true,
               });
             }}
-            style={{paddingHorizontal: 30, paddingTop: 20, paddingBottom: 200}}>
+            style={{ paddingHorizontal: 30, paddingTop: 20, paddingBottom: 200 }}>
             <FormDropdown
               value={
                 c && c.cid !== ''
                   ? typeof c.contact_details !== 'undefined'
                     ? c.contact_details.first_name +
-                      ' ' +
-                      c.contact_details.last_name
+                    ' ' +
+                    c.contact_details.last_name
                     : c.first_name + ' ' + c.last_name
                   : 'Select a contact'
               }
@@ -519,25 +536,25 @@ class NewTask extends Component {
               placeholder={'Task Title'}
               label={'Title'}
               value={this.state.title}
-              onChangeText={title => this.setState({title})}
+              onChangeText={title => this.setState({ title })}
               // keyboardType={'email-address'}
               textColor={this.props.settings.theme.textPrimary}
               bgColor={this.props.settings.theme.inputBg}
               inputAccessoryViewID={this.inputAccessoryViewID}
-              // onFocus={() => this.setState({ prevInput: this.inputPhone, nextInput: this.inputWebsite })}
-              // inputRef={(ref) => { this.inputEmail = ref }}
+            // onFocus={() => this.setState({ prevInput: this.inputPhone, nextInput: this.inputWebsite })}
+            // inputRef={(ref) => { this.inputEmail = ref }}
 
-              // multiline
-              // scrollEnabled={false}
-              // inputContainerStyle={{ height: 80}}
-              // textColor={this.props.settings.theme.textPrimary}
-              // bgColor={this.props.settings.theme.inputBg}
-              // placeholder={'Task Title'}
-              // label={'Title'}
-              // value={this.state.title}
-              // onChangeText={(title) =>this.setState({ title })}
-              // inputAccessoryViewID={this.inputAccessoryViewID}
-              // keyboardAppearance={this.props.settings.theme.mode==='dark' ? 'dark' : 'light'}
+            // multiline
+            // scrollEnabled={false}
+            // inputContainerStyle={{ height: 80}}
+            // textColor={this.props.settings.theme.textPrimary}
+            // bgColor={this.props.settings.theme.inputBg}
+            // placeholder={'Task Title'}
+            // label={'Title'}
+            // value={this.state.title}
+            // onChangeText={(title) =>this.setState({ title })}
+            // inputAccessoryViewID={this.inputAccessoryViewID}
+            // keyboardAppearance={this.props.settings.theme.mode==='dark' ? 'dark' : 'light'}
             />
 
             {Platform.OS == 'ios' ? (
@@ -577,51 +594,67 @@ class NewTask extends Component {
                   }}
                   onDateChange={dateTime => {
                     console.log('data we have picked is as follows ', dateTime);
-                    this.setState({dateTime});
+                    this.setState({ dateTime });
                   }}
                 />
               </>
             ) : (
-              <FormDatePicker
-                placeholder={'Date & Time'}
-                label={'Date & Time'}
-                value={
-                  this.state.dateTime == ''
-                    ? ''
-                    : this.setDateFormat(
-                        this.state.dateTime.split(' ')[0],
-                      ).split('-')[2] +
-                      '-' +
-                      this.setDateFormat(
-                        this.state.dateTime.split(' ')[0],
-                      ).split('-')[0] +
-                      '-' +
-                      this.setDateFormat(
-                        this.state.dateTime.split(' ')[0],
-                      ).split('-')[1] +
-                      ' ' +
-                      (this.state.dateTime.split(' ')[2] == 'PM'
-                        ? formatTime(
-                            timestrToSec(this.state.dateTime.split(' ')[1]) +
-                              timestrToSec('12:00'),
-                          )
-                        : this.state.dateTime.split(' ')[1])
-                }
-                onChangeText={title => this.setState({title})}
-                // keyboardType={'email-address'}
-                textColor={this.props.settings.theme.textPrimary}
-                bgColor={this.props.settings.theme.inputBg}
-                inputAccessoryViewID={this.inputAccessoryViewID}
-                icon={global.icon_calendar2}
-                datePickerRef={this.state.datePickerRef}
-                onDateChange={() => {
-                  this.setState({
-                    isVisible: true,
-                  });
-                }}
-              />
+              <TouchableOpacity style={{
+                backgroundColor: global.color_ltmedgray,
+                borderRadius: 10,
+                height: 50,
+                width: '100%',
+                paddingHorizontal: 15,
+                justifyContent: 'center',
+              }}>
+                <Text>hello</Text>
+              </TouchableOpacity>
+              // <FormDatePicker
+              //   placeholder={'Date & Time'}
+              //   label={'Date & Time'}
+              //   value={this.state.date == '' ? this.state.dateTime : this.state.date}
+              //   // value={
+              //   //   this.props.route.params.route == 'ContactDetails' ?
+              //   //     moment(this.state.dateTime?.split(' ')[0]).format('MM-DD-YYYY')  : this.state.dateTime
+              //   // }
+              //   // value={
+              //   //   this.state.dateTime == ''
+              //   //     ? ''
+              //   //     : this.setDateFormat(
+              //   //       this.state.dateTime.split(' ')[0],
+              //   //     ).split('-')[2] +
+              //   //     '-' +
+              //   //     this.setDateFormat(
+              //   //       this.state.dateTime.split(' ')[0],
+              //   //     ).split('-')[0] +
+              //   //     '-' +
+              //   //     this.setDateFormat(
+              //   //       this.state.dateTime.split(' ')[0],
+              //   //     ).split('-')[1] +
+              //   //     ' ' +
+              //   //     (this.state.dateTime.split(' ')[2] == 'PM'
+              //   //       ? formatTime(
+              //   //         timestrToSec(this.state.dateTime.split(' ')[1]) +
+              //   //         timestrToSec('12:00'),
+              //   //       )
+              //   //       : this.state.dateTime.split(' ')[1])
+              //   // }
+              //   onChangeText={title => this.setState({ title })}
+              //   // keyboardType={'email-address'}
+              //   textColor={this.props.settings.theme.textPrimary}
+              //   bgColor={this.props.settings.theme.inputBg}
+              //   inputAccessoryViewID={this.inputAccessoryViewID}
+              //   icon={global.icon_calendar2}
+              //   datePickerRef={this.state.datePickerRef}
+              //   onDateChange={() => {
+              //     this.setState({
+              //       isVisible: true,
+              //     });
+              //   }}
+              // />
             )}
             {Platform.OS == 'android' ? (
+
               <DateTimePickerModal
                 ref={ref => (this.state.datePickerRef = ref)}
                 isVisible={this.state.isVisible}
@@ -675,10 +708,10 @@ class NewTask extends Component {
                   alertListTitle: 'Select Task Type',
                   alertListData: [],
                   alertListSave: () => {
-                    this.setState({alertListVisible: false});
+                    this.setState({ alertListVisible: false });
                   },
                 });
-                this.props.getTaskTypes({alertListVisible: false});
+                this.props.getTaskTypes({ alertListVisible: false });
               }}
             />
             {/* <InputScrollView> */}
@@ -688,12 +721,12 @@ class NewTask extends Component {
               isComment={true}
               scrollEnabled={true}
               value={this.Capitalize(this.state.comments)}
-              onChangeText={comments => this.setState({comments})}
+              onChangeText={comments => this.setState({ comments })}
               placeholder={'Write a comment for this task'}
               // autoCapitalize={'characters'}
               textColor={this.props.settings.theme.textPrimary}
               bgColor={this.props.settings.theme.inputBg}
-              inputContainerStyle={{height: null, minHeight: 140}}
+              inputContainerStyle={{ height: null, minHeight: 140 }}
               // style={{ marginBottom: 100 }}
               //returnKeyType={'done'}
 
@@ -711,9 +744,9 @@ class NewTask extends Component {
             {this.props.route.params && c && this.props.route.params.task ? (
               <FormButton
                 text={'Delete'}
-                style={[{backgroundColor: global.color_red, marginTop: 0}]}
+                style={[{ backgroundColor: global.color_red, marginTop: 0 }]}
                 textColor={this.props.settings.theme.bgPrimary}
-                onPress={() => this.setState({showModalDelete: true})}
+                onPress={() => this.setState({ showModalDelete: true })}
               />
             ) : null}
           </ScrollView>
@@ -742,7 +775,7 @@ class NewTask extends Component {
         <ModalChecklist
           isVisible={this.state.alertListVisible}
           title={this.state.alertListTitle}
-          onBackdropPress={() => this.setState({alertListVisible: false})}
+          onBackdropPress={() => this.setState({ alertListVisible: false })}
           list={this.renderAlertList()}
           onPressSave={this.state.alertListSave}
           saveText={'Select'}
@@ -752,7 +785,7 @@ class NewTask extends Component {
         />
 
         <ModalAlert
-          onBackdropPress={() => this.setState({alertVisible: false})}
+          onBackdropPress={() => this.setState({ alertVisible: false })}
           isVisible={this.state.alertVisible}
           title={this.state.alertTitle}
           message={this.state.alertMessage}
@@ -764,7 +797,7 @@ class NewTask extends Component {
         />
 
         <ModalAlert
-          onBackdropPress={() => this.setState({showModalDelete: false})}
+          onBackdropPress={() => this.setState({ showModalDelete: false })}
           isVisible={this.state.showModalDelete}
           title={'Delete Task'}
           message={'Are you sure you want to delete this Task?'}
@@ -772,13 +805,13 @@ class NewTask extends Component {
           buttons={[
             {
               text: 'Cancel',
-              onPress: () => this.setState({showModalDelete: false}),
+              onPress: () => this.setState({ showModalDelete: false }),
               type: 'cancel',
             },
             {
               text: 'Delete',
               onPress: () => {
-                this.setState({showModalDelete: false});
+                this.setState({ showModalDelete: false });
                 this.deleteTask();
               },
             },
@@ -787,20 +820,23 @@ class NewTask extends Component {
           bgColor={this.props.settings.theme.bgPrimary}
           textColor={this.props.settings.theme.textPrimary}
         />
-        {this.props.tasksStatus === TASK_ADDTASK_LOADING ||
-        this.props.tasksStatus === TASK_EDITTASK_LOADING ? (
-          <IndicatorBottom dark={this.props.settings.theme.mode === 'dark'} />
-        ) : null}
-        {Platform.OS === 'android' ? null : (
-          <InputAccessoryView nativeID={this.inputAccessoryViewID}>
-            <View
-              style={{
-                backgroundColor: this.props.settings.theme.bgSecondary,
-                justifyContent: 'flex-end',
-                paddingHorizontal: 10,
-                flexDirection: 'row',
-              }}>
-              {/*
+        {
+          this.props.tasksStatus === TASK_ADDTASK_LOADING ||
+            this.props.tasksStatus === TASK_EDITTASK_LOADING ? (
+            <IndicatorBottom dark={this.props.settings.theme.mode === 'dark'} />
+          ) : null
+        }
+        {
+          Platform.OS === 'android' ? null : (
+            <InputAccessoryView nativeID={this.inputAccessoryViewID}>
+              <View
+                style={{
+                  backgroundColor: this.props.settings.theme.bgSecondary,
+                  justifyContent: 'flex-end',
+                  paddingHorizontal: 10,
+                  flexDirection: 'row',
+                }}>
+                {/*
   
                 <View style={{
                   flexDirection: 'row',
@@ -821,15 +857,16 @@ class NewTask extends Component {
                   />
                 </View>
                 */}
-              <Button
-                onPress={() => Keyboard.dismiss()}
-                title="Done"
-                color={global.color_theme}
-              />
-            </View>
-          </InputAccessoryView>
-        )}
-      </View>
+                <Button
+                  onPress={() => Keyboard.dismiss()}
+                  title="Done"
+                  color={global.color_theme}
+                />
+              </View>
+            </InputAccessoryView>
+          )
+        }
+      </View >
     );
   }
 }
@@ -846,8 +883,8 @@ const styles = {
   },
 };
 
-const mapStateToProps = ({settings, tasks}) => {
-  const {tasksStatus, tasksError, tasksList, tasksCalendarTask, taskTypes} =
+const mapStateToProps = ({ settings, tasks }) => {
+  const { tasksStatus, tasksError, tasksList, tasksCalendarTask, taskTypes } =
     tasks;
   return {
     settings,

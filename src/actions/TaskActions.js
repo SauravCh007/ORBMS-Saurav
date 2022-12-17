@@ -340,7 +340,7 @@ export const getAscendingList = parameters => {
       console.log(url, 'all task===>', parameters);
       console.log('all task===>', parameters + '========' + url);
       fetch(url)
-        .then(response => response.json())
+        .then(response =>  response.json())
         .then(json => {
           if (json.error && json.msg) {
             dispatch({type: ALL_TASK_FAIL, payload: 'An error has occured'});
@@ -349,6 +349,7 @@ export const getAscendingList = parameters => {
               console.log('TESTTETS', json);
             }
             dispatch({type: ALL_TASK_SUCCESS, payload: json});
+            console.log("ALL_TASK_SUCCESS",json)
             dispatch({type: TASK_IDLE});
           }
         })
@@ -411,3 +412,13 @@ export const setTaskSearchKey = key => {
     dispatch({type: TASK_SETSEARCHKEY, payload: key});
   };
 };
+
+
+
+
+
+
+
+
+
+

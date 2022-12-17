@@ -86,6 +86,7 @@ export default (state = INITIAL_STATE, action) => {
     case ALL_DSC_TASK_FAIL:
       return { ...state, tasksStatus: action.type, tasksError: action.payload };
    case TASK_SETSEARCHKEY:
+    console.log("taskSearchKeyReducer",action.payload)
      return { ...state, tasksStatus: action.type, taskSearchKey: action.payload };
     default:
       return state;

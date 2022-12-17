@@ -1,1197 +1,4 @@
 
-import _ from 'lodash';
-import React, { Component, PureComponent } from 'react';
-import AsyncStorage from '@react-native-community/async-storage';
-import moment from 'moment';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  Button,
-  Image,
-  TextInput,
-  RefreshControl,
-  ScrollView,
-} from 'react-native';
-import Swipeable from 'react-native-swipeable';
-import { useIsFocused } from '@react-navigation/native'
-import {
-  ExpandableCalendar,
-  AgendaList,
-  CalendarProvider,
-  WeekCalendar,
-} from 'react-native-calendars';
-import Swipeout from 'react-native-swipeout';
-import { connect } from 'react-redux';
-import Modal from 'react-native-modal';
-import {
-  HeaderButton,
-  MiniButton,
-  IndicatorBottom,
-  CalendarTaskItem,
-  ModalChecklist,
-  TaskItem,
-  ModalAlert,
-  FormDropdown,
-  FilterButton,
-} from '../common';
-import { getCalendarTasks, editTask, deleteTask, getTaskTypes } from '../actions';
-import {
-  TASK_EDITTASK_SUCCESS,
-  TASK_DELETETASK_SUCCESS,
-  TASK_IDLE,
-} from '../actions/types';
-import { FormatTime } from '../utils/Helper';
-import { backgroundColor, marginRight } from 'styled-system';
-import {useFocusEffect} from '@react-navigation/native';
-const testIDs = require('../testIDs');
-
-const today = new Date().toISOString().split('T')[0];
-const fastDate = getPastDate(3);
-const futureDates = getFutureDates(9);
-const dates = [fastDate, today].concat(futureDates);
-const themeColor = 'red'; //'#00AAAF';
-const lightThemeColor = 'transparent'; // '#EBF9F9';
-
-function getFutureDates(days) {
-  const array = [];
-  for (let index = 1; index <= days; index++) {
-    const date = new Date(Date.now() + 864e5 * index); // 864e5 == 86400000 == 24*60*60*1000
-    const dateString = date.toISOString().split('T')[0];
-    array.push(dateString);
-  }
-  return array;
-}
-
-
-
-function getPastDate(days) {
-  return new Date(Date.now() - 864e5 * days).toISOString().split('T')[0];
-}
-
-const ITEMS = [
-  {
-    title: dates[0],
-    data: [{ hour: '12am', duration: '1h', title: 'First Yoga' }],
-  },
-  {
-    title: dates[1],
-    data: [
-      { hour: '4pm', duration: '1h', title: 'Pilates ABC' },
-      { hour: '5pm', duration: '1h', title: 'Vinyasa Yoga' },
-    ],
-  },
-  {
-    title: dates[2],
-    data: [
-      { hour: '1pm', duration: '1h', title: 'Ashtanga Yoga' },
-      { hour: '2pm', duration: '1h', title: 'Deep Streches' },
-      { hour: '3pm', duration: '1h', title: 'Private Yoga' },
-    ],
-  },
-  {
-    title: dates[3],
-    data: [{ hour: '12am', duration: '1h', title: 'Ashtanga Yoga' }],
-  },
-  { title: dates[4], data: [{}] },
-  {
-    title: dates[5],
-    data: [
-      { hour: '9pm', duration: '1h', title: 'Middle Yoga' },
-      { hour: '10pm', duration: '1h', title: 'Ashtanga' },
-      { hour: '11pm', duration: '1h', title: 'TRX' },
-      { hour: '12pm', duration: '1h', title: 'Running Group' },
-    ],
-  },
-  {
-    title: dates[6],
-    data: [{ hour: '12am', duration: '1h', title: 'Ashtanga Yoga' }],
-  },
-  { title: dates[7], data: [{}] },
-  {
-    title: dates[8],
-    data: [
-      { hour: '9pm', duration: '1h', title: 'Pilates Reformer' },
-      { hour: '10pm', duration: '1h', title: 'Ashtanga' },
-      { hour: '11pm', duration: '1h', title: 'TRX' },
-      { hour: '12pm', duration: '1h', title: 'Running Group' },
-    ],
-  },
-  {
-    title: dates[9],
-    data: [
-      { hour: '1pm', duration: '1h', title: 'Ashtanga Yoga' },
-      { hour: '2pm', duration: '1h', title: 'Deep Streches' },
-      { hour: '3pm', duration: '1h', title: 'Private Yoga' },
-    ],
-  },
-  {
-    title: dates[10],
-    data: [{ hour: '12am', duration: '1h', title: 'Last Yoga' }],
-  },
-];
-
-
-class CalendarTask extends Component {
-
-  constructor(props) {
-    console.log("propsC",props)
-
-    // useFocusEffect(
-    //   React.useCallback(() => {
-    //     const unsubscribe = CalendarTask();
-    //     return () => unsubscribe;
-    //   }, []),
-    // ),
-    super(props);
-    console.log("props",props)
-    this.state = {
-      calendarItems: [],
-      agendaCalendarItem: [],
-      selectedDate: new Date(),
-      weekView: false,
-      calendarMonth: '',
-      calendarYear: '',
-      calendarDate: new Date(),
-      showModalDelete: false,
-      showCalander:false,
-      didToDelete: '',
-      agenda: '',
-      todayDate: '',
-
-      showFilter: false,
-
-      currentlyOpenSwipeable: null,
-      agendaApiTimeoutObj: undefined,
-      refreshing: true,
-      isVisible: false,
-    };
-    this.selectedRow;
-    this.component = [];
-    console.log("first",this.props.settings)
-    // this.render();
-  }
-
-//  function(params) {
-//  setTimeout(() => {
-//     this.setState({showCalander:true})
-//   }, 300);
-//  }
-  componentDidMount() {
-    
-    
-   this.props.getCalendarTasks
-    this.props.navigation.setOptions({
-      title: 'Calendar Tasks',
-      headerLeft: () => (
-        <View
-          style={[
-            global.styles.headerButtonsContainer,
-            { balignItems: 'center', },
-          ]}>
-          <TouchableOpacity
-            style={global.styles.headerButtonsContainer}
-            onPress={() =>
-              this.props.navigation.navigate('TaskList', {
-                title: 'Task List',
-                route: 'CalendarStack',
-                month: this.state.calendarMonth,
-                year: this.state.calendarYear,
-              })
-            }>
-            <Text
-              style={{
-                color: '#696969',
-                fontSize: 16,
-                fontWeight: '700',
-                fontFamily: global.font_main,
-                paddingVertical: 10,
-              }}>
-              {'All'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ),
-      headerRight: () => (
-        <View style={global.styles.headerButtonsContainer}>
-          <HeaderButton
-            icon={global.icon_plus}
-            style={{ padding: 10 }}
-            mode={this.props.settings.theme.mode}
-            //onPress={() => this.addContact()}
-            onPress={() =>
-              this.props.navigation.navigate('NewTask', {
-                title: 'New Task',
-                route: 'CalendarStack',
-              })
-            }
-          />
-        </View>
-      ),
-    });
-    let now = new Date();
-    this.setState(
-      {
-        calendarMonth: now.getMonth() + 1,
-        calendarYear: new Date().getFullYear(),
-      },
-      () => {
-        setTimeout(() => {
-          this.refresh();
-        }, 500);
-      },
-    );
-  }
-
-
-  // refresh() {
-  //   // this.props.getCalendarTasks({ month: `${now.getMonth() + 1}`, year: `${now.getFullYear()}` });
-  //   this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}` });
-
-  // }
-
-  deleteTask() {
-    if (this.state.didToDelete && this.state.didToDelete !== '') {
-      this.props.deleteTask({
-        did: this.state.didToDelete,
-      });
-      this.onRefresh();
-    }
-  }
-
-  componentWillReceiveProps(nextProps) {
-
-
-    setTimeout(() => {
-      this.setState({showCalander:true})
-    }, 1000);
-    if (nextProps.tasksStatus === TASK_DELETETASK_SUCCESS) {
-      // console.log(nextProps, 'nextProps nextProps')
-      this.refresh();
-    }
-    console.log("show",this.state.showCalander)
-  // }
-
-  // componentWillReceiveProps(nextProps) {
-    // console.log(nextProps.tasksCalendarTasks, 'nextProps.tasksCalendarTasks');
-  
-    let newItems = [];
-    let lastItem = null;
-    this.setTodayDate();
-    if (nextProps.tasksCalendarTasks.length > 0) {
-      let tasks = nextProps.tasksCalendarTasks.keySort('date');
-      console.log('calender task is as follows ', tasks);
-      tasks.map((item, index) => {
-        let momentDate = moment(item.date);
-        console.log('data of moment is ', momentDate);
-        let newTitle = moment(item.date).format('YYYY-MM-DD');
-        console.log('new title is as follows ', newTitle);
-        if (lastItem) {
-          if (lastItem.title === newTitle) {
-            let newData = lastItem.data;
-            newData.push({
-              hour: momentDate.format('hh:mm A'),
-              duration: '1h',
-              title: item.title,
-              dateString: momentDate.format('YYYY-MM-DD'),
-              contact: item.contact,
-              item: item,
-            });
-            lastItem = {
-              ...lastItem,
-              data: newData,
-            };
-          } else {
-            newItems.push(lastItem);
-            lastItem = null;
-
-            lastItem = {
-              title: newTitle,
-              dateString: momentDate.format('YYYY-MM-DD'),
-              data: [
-                {
-                  hour: momentDate.format('hh:mm A'),
-                  duration: '1h',
-                  title: item.title,
-                  dateString: momentDate.format('YYYY-MM-DD'),
-                  contact: item.contact,
-                  item: item,
-                },
-              ],
-            };
-            console.log('');
-          }
-        } else {
-          lastItem = {
-            title: newTitle,
-            dateString: momentDate.format('YYYY-MM-DD'),
-            data: [
-              {
-                hour: momentDate.format('hh:mm A'),
-                duration: '1h',
-                title: item.title,
-                dateString: momentDate.format('YYYY-MM-DD'),
-                contact: item.contact,
-                item: item,
-              },
-            ],
-          };
-        }
-
-        if (index >= tasks.length - 1) {
-          newItems.push(lastItem);
-        }
-      });
-      this.setState({
-        calendarItems: newItems,
-        agendaCalendarItem: newItems,
-      });
-    } else {
-      let momentDate = moment(this.state.calendarDate);
-      let newTitle = momentDate.toISOString().split('T')[0];
-
-      lastItem = {
-        title: newTitle,
-        dateString: momentDate.format('YYYY-MM-DD'),
-        data: [],
-      };
-      newItems.push(lastItem);
-      this.setState({
-        calendarItems: newItems,
-        todayDate: `${new Date().getFullYear()}-${(
-          '0' +
-          (new Date().getMonth() + 1)
-        ).slice(-2)}-${('0' + new Date().getDate()).slice(-2)}`,
-        agendaCalendarItem: newItems,
-      });
-      {
-        console.log('xxxpp', this.state.todayDate);
-      }
-    }
-
-    if (
-      this.props.tasksStatus === TASK_EDITTASK_SUCCESS &&
-      nextProps.tasksStatus === TASK_IDLE
-    ) {
-      this.refresh();
-    }
-
-    console.log(newItems, '1');
-  }
-
-  onDateChanged = (date, updateSource) => {
-    // console.log(date, 'date', updateSource);
-    if (updateSource == 'dayPress') {
-      let task = this.state.calendarItems;
-      let filterTask = task.filter(e => e.dateString == date);
-
-      // console.warn('ExpandableCalendarScreen onDateChanged: ', date, updateSource);
-      // fetch and set data for date + week ahead
-      this.setState({
-        selectedDate: date,
-        agendaCalendarItem: filterTask,
-      });
-      console.log(date, '18558');
-      console.log(filterTask, '5252');
-      console.log(task, '52412');
-    } else {
-      this.setState({
-        selectedDate: date,
-      });
-    }
-  };
-
-  onMonthChange = (month, updateSource) => {
-    if (typeof this.state.agendaApiTimeoutObj !== 'undefined') {
-      clearTimeout(this.state.agendaApiTimeoutObj);
-    }
-    this.state.agendaApiTimeoutObj = setTimeout(() => {
-      if (month) {
-        AsyncStorage.getItem('newTask').then(response => {
-          if (response != '' && response != null) {
-            if (JSON.parse(response)) {
-              this.props.getCalendarTasks({
-                month: `${month.month}`,
-                year: `${month.year}`,
-                flag: 1,
-              });
-              this.setState({
-                calendarMonth: month.month,
-                calendarYear: month.year,
-                calendarDate: new Date(month.timestamp),
-              });
-              //  AsyncStorage.setItem('newTask', JSON.stringify(false));
-            } else {
-              this.props.getCalendarTasks({
-                month: `${month.month}`,
-                year: `${month.year}`,
-              });
-              this.setState({
-                calendarMonth: month.month,
-                calendarYear: month.year,
-                calendarDate: new Date(month.timestamp),
-              });
-            }
-          } else {
-            this.props.getCalendarTasks({
-              month: `${month.month}`,
-              year: `${month.year}`,
-            });
-            this.setState({
-              calendarMonth: month.month,
-              calendarYear: month.year,
-              calendarDate: new Date(month.timestamp),
-            });
-          }
-        });
-      }
-    }, 400);
-  };
-
-  buttonPressed() {
-    Alert.alert('show more');
-  }
-
-  itemPressed(id) {
-    Alert.alert(id);
-  }
-  renderEmptyItem() {
-    return (
-      <View
-        style={[
-          styles.emptyItem,
-          { backgroundColor: this.props.settings.theme.bgSecondary },
-        ]}>
-        <Text
-          style={[
-            styles.emptyItemText,
-            { color: this.props.settings.theme.textPrimary },
-          ]}>
-          No Events Planned
-        </Text>
-      </View>
-    );
-  }
-
-  refresh() {
-    // AsyncStorage.getItem('newTask').then((response) => {
-    //   if (response != '' && response != null) {
-    //     console.log(JSON.parse(response), 'response');
-    //     if (JSON.parse(response)) {
-    //       console.log(JSON.parse(response), 'response1');
-    //       this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}`, flag: 1 });
-    //       //  AsyncStorage.setItem('newTask', JSON.stringify(false));
-    //     } else {
-    //       this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}` });
-    //     }
-    //   } else {
-    //     this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}` });
-    //   }
-    // });
-    this.props.getCalendarTasks({
-      month: `${this.state.calendarMonth}`,
-      year: `${this.state.calendarYear}`,
-      flag: 1,
-    });
-    setTimeout(() => {
-      this.setState({
-        refreshing: false,
-      });
-    }, 2000);
-  }
-
-  setDateTimeFormat = date => {
-    return (
-      date.split(' ')[0].split('-')[1] +
-      '-' +
-      date.split(' ')[0].split('-')[2] +
-      '-' +
-      date.split(' ')[0].split('-')[0] +
-      ' (' +
-      FormatTime(date.split(' ')[1]) +
-      ')'
-    );
-  };
-
-  renderItem = ({ item }) => {
-    if (_.isEmpty(item)) {
-      return this.renderEmptyItem();
-    }
-
-    // console.log(item, '*******************');
-    // var swipeoutBtns = [
-    //   {
-    //     text: 'Edit',
-    //     color: global.color_white,
-    //     backgroundColor: global.color_purple,
-    //     onPress: () => this.props.navigation.navigate('NewTask', {
-    //       title: 'Edit Task',
-    //       // contact: c,
-    //       cid: item.item.cid,
-    //       task: item,
-    //       route: 'CalendarStack',
-    //       onNavigateBack: this.refresh.bind(this)
-    //     })
-    //   },
-    //   {
-    //     text: 'Delete',
-    //     backgroundColor: global.color_red,
-    //     onPress: () => {
-    //       this.setState({ showModalDelete: true, didToDelete: item.item.did });
-    //     }
-    //   },
-    // ]
-
-    return (
-      // <Swipeout right={swipeoutBtns} style={{ backgroundColor: 'transparent' }}>
-
-      //   <CalendarTaskItem
-      //     title={item.item.title}
-      //     // subtitle={item.item.contact.first_name ? item.item.contact.first_name : '' + ' ' +
-      //     // item.item.contact.last_name ? item.item.contact.last_name : ''}
-      //     active={item.item.status === '1'}
-      //     bgColor={this.props.settings.theme.bgPrimary}
-      //     textColor={this.props.settings.theme.textPrimary}
-      //     onPress={() => {
-      //       console.log('task item - ' + JSON.stringify(item));
-      //       this.props.navigation.navigate('NewTask', {
-      //         title: 'Edit Task',
-      //         contact: item.item.contact,
-      //         //cid: item.item.cid,
-      //         task: item.item,
-      //         route: 'CalendarStack',
-      //         month: this.state.calendarMonth,
-      //         year: this.state.calendarYear,
-      //         onNavigateBack: this.refresh.bind(this)
-      //       });
-      //     }}
-      //     onPressCheckbox={() => {
-      //       // let task = this.props.route.params.task;
-      //       let params = {
-      //         did: item.item.did,
-      //         title: item.item.title,
-      //         status: item.item.status === '1' ? '0' : '1'
-      //       };
-
-      //       this.props.editTask(params);
-      //     }}
-      //     time={item.hour}
-      //     type={item.item.type}
-      //   />
-      // </Swipeout>
-      <Swipeable
-        ref={c => {
-          this.selectedRow = c;
-        }}
-        rightButtons={[
-          <TouchableOpacity
-            style={[
-              styles.rightSwipeItem,
-              { backgroundColor: global.color_purple },
-            ]}
-            onPress={() => {
-              this.props.navigation.navigate('NewTask', {
-                title: 'Edit Task',
-                contact: item.item.contact,
-                //cid: item.item.cid,
-                task: item.item,
-                route: 'CalendarStack',
-                month: this.state.calendarMonth,
-                year: this.state.calendarYear,
-                onNavigateBack: this.refresh.bind(this),
-              });
-              this.closeAll();
-            }}>
-            <MiniButton
-              icon={global.icon_pencil}
-              color={global.color_purple}
-              style={{ marginLeft: 1, marginBottom: -5 }}
-              onPress={() => {
-                this.props.navigation.navigate('NewTask', {
-                  title: 'Edit Task',
-                  contact: item.item.contact,
-                  //cid: item.item.cid,
-                  task: item.item,
-                  route: 'CalendarStack',
-                  month: this.state.calendarMonth,
-                  year: this.state.calendarYear,
-                  onNavigateBack: this.refresh.bind(this),
-                });
-                this.closeAll();
-              }}
-            />
-            <Text
-              style={{
-                color: global.color_white,
-                marginLeft: 5,
-                marginBottom: 5,
-              }}>
-              Edit
-            </Text>
-          </TouchableOpacity>,
-          <TouchableOpacity
-            style={[styles.rightSwipeItem, { backgroundColor: global.color_red }]}
-            onPress={() => {
-              this.setState({
-                showModalDelete: true,
-                didToDelete: item.item.did,
-              });
-              this.closeAll();
-            }}>
-            <MiniButton
-              icon={global.icon_delete}
-              color={global.color_red}
-              style={{ marginLeft: -1, marginBottom: -4 }}
-              onPress={() => {
-                this.setState({
-                  showModalDelete: true,
-                  didToDelete: item.item.did,
-                });
-                this.closeAll();
-              }}
-            />
-            <Text style={styles.iconStyle}>Delete</Text>
-          </TouchableOpacity>,
-        ]}
-        onRightButtonsOpenRelease={this.onOpen}
-        onRightButtonsCloseRelease={this.onClose}>
-        {/* <CalendarTaskItem
-          title={item.item.title}
-          // subtitle={item.item.contact.first_name ? item.item.contact.first_name : '' + ' ' + 
-          // item.item.contact.last_name ? item.item.contact.last_name : ''}
-          active={item.item.status === '1'}
-          bgColor={this.props.settings.theme.bgPrimary}
-          textColor={this.props.settings.theme.textPrimary}
-          onPress={() => {
-            console.log('task item - ' + JSON.stringify(item));
-            this.props.navigation.navigate('NewTask', {
-              title: 'Edit Task',
-              contact: item.item.contact,
-              //cid: item.item.cid,
-              task: item.item,
-              route: 'CalendarStack',
-              month: this.state.calendarMonth,
-              year: this.state.calendarYear,
-              onNavigateBack: this.refresh.bind(this)
-            });
-          }}
-          onPressCheckbox={() => {
-            // let task = this.props.route.params.task;
-            let params = {
-              did: item.item.did,
-              title: item.item.title,
-              status: item.item.status === '1' ? '0' : '1'
-            };
-
-            this.props.editTask(params);
-          }}
-          time={item.hour}
-          type={item.item.type}
-        /> */}
-        <TaskItem
-          title={item.item.title}
-          subtitle={
-            this.setDateTimeFormat(item.item.date) + ' ' + item.item.type
-          }
-          active={item.item.status === '1'}
-          bgColor={this.props.settings.theme.bgPrimary}
-          textColor={this.props.settings.theme.textPrimary}
-          onPress={() => {
-            // console.log('task item - ' + JSON.stringify(item));
-            this.props.navigation.navigate('NewTask', {
-              title: 'Edit Task',
-              contact: item.item.contact,
-              //cid: item.item.cid,
-              task: item.item,
-              route: 'CalendarStack',
-              onNavigateBack: this.refresh.bind(this),
-            });
-          }}
-          onPressCheckbox={() => {
-            // let task = this.props.route.params.task;
-            let params = {
-              did: item.item.did,
-              title: item.item.title,
-              status: item.item.status === '1' ? '0' : '1',
-            };
-
-            this.props.editTask(params);
-          }}
-        />
-      </Swipeable>
-
-    );
-  };
-
-  getMarkedDates = () => {
-    const marked = {};
-    this.state.calendarItems.forEach(item => {
-      // NOTE: only mark dates with data
-      if (item.data && item.data.length > 0 && !_.isEmpty(item.data[0])) {
-        marked[item.dateString] = { marked: true };
-      } else {
-        marked[item.dateString] = { disabled: true };
-      }
-    });
-    return marked;
-  };
-
-  getTheme = () => {
-    const disabledColor = 'grey';
-    // const disabledColor = 'grey';
-    return {
-      // arrows
-      arrowColor: 'black',
-      arrowStyle: { padding: 0 },
-      // month
-      monthTextColor: 'black',
-      textMonthFontSize: 16,
-      textMonthFontFamily: 'HelveticaNeue',
-      textMonthFontWeight: 'bold',
-      // day names
-      textSectionTitleColor: 'black',
-      textDayHeaderFontSize: 12,
-      textDayHeaderFontFamily: 'HelveticaNeue',
-      textDayHeaderFontWeight: 'normal',
-      // dates
-      dayTextColor: themeColor,
-      textDayFontSize: 18,
-      textDayFontFamily: 'HelveticaNeue',
-      textDayFontWeight: '500',
-      textDayStyle: { marginTop: Platform.OS === 'android' ? 2 : 4 },
-      // selected date
-      selectedDayBackgroundColor: themeColor,
-      selectedDayTextColor: 'white',
-      // disabled date
-      textDisabledColor: disabledColor,
-      // dot (marked date)
-      dotColor: themeColor,
-      selectedDotColor: 'white',
-      disabledDotColor: disabledColor,
-      dotStyle: { marginTop: -2 },
-    };
-  };
-
-  onRefresh = () => {
-    console.log('refresh', {
-      month: `${this.state.calendarMonth}`,
-      year: `${this.state.calendarYear}`,
-      flag: 1,
-    });
-    this.props.getCalendarTasks({
-      month: `${this.state.calendarMonth}`,
-      year: `${this.state.calendarYear}`,
-      flag: 1,
-    });
-    // this.render();
-  };
-
-  setTodayDate = () => {
-    let date = `${new Date().getFullYear()}-${(
-      '0' +
-      (new Date().getMonth() + 1)
-    ).slice(-2)}-${('0' + new Date().getDate()).slice(-2)}`;
-    this.setState({ todayDate: date });
-    // this.render();
-  };
-
-  onOpen = (event, gestureState, swipeable) => {
-    if (
-      this.state.currentlyOpenSwipeable &&
-      this.state.currentlyOpenSwipeable !== swipeable
-    ) {
-      this.state.currentlyOpenSwipeable.recenter();
-    }
-    this.setState({ currentlyOpenSwipeable: swipeable });
-  };
-
-  onClose = () => {
-    this.setState({ currentlyOpenSwipeable: null });
-  };
-
-  closeAll = () => {
-    if (this.state.currentlyOpenSwipeable) {
-      this.state.currentlyOpenSwipeable.recenter();
-    }
-  };
- 
-
- scrollData = ()=> {
-  return (
-    <ScrollView
-    style={{
-      backgroundColor: this.props.settings.theme.mode === 'light'?'#fff':'#000'
-    }}
-      refreshControl={
-        <RefreshControl
-          tintColor={global.color_theme2}
-          onRefresh={() => this.onRefresh()}
-          refreshing={this.state.refreshing}
-        />
-      }>
-      <View
-        style={{ paddingBottom: 35, height: 350, overflow: 'hidden', }}
-        onStartShouldSetResponder={() => this.closeAll()}>
-        <Text style={{color:'red'}}>{this.props.settings.theme.bgPrimary}</Text>
-        
-        {this.state.showCalander && 
-      
-        <CalendarProvider
-      
-        style={{
-          // backgroundColor: this.props.settings.theme.bgSecondary,
-          
-          backgroundColor: this.props.settings.theme.bgPrimary,
-          
-          position: 'relative',
-        }}
-        date={
-          this.state?.calendarItems?.length > 0 ? this.state?.todayDate : ''
-        }
-        onDateChanged={this.onDateChanged}
-        onMonthChange={this.onMonthChange}
-        showTodayButton
-        disabledOpacity={0.6}
-        theme={{
-          // calendarBackground: this.props.settings.theme.bgSecondary,
-          calendarBackground: this.props.settings.theme.bgPrimary,
-          todayButtonTextColor: global.color_theme,
-        }}
-        horizontal={true}
-        // Enable paging on horizontal, default = false
-        pagingEnabled={true}
-        todayBottomMargin={15}>
-        {
-          //this.props.weekView ?
-          this.state.weekView ? (
-            <WeekCalendar
-              testID={testIDs.weekCalendar.CONTAINER}
-              firstDay={1}
-              markedDates={this.getMarkedDates()}
-              style={[
-                styles.item,
-                {
-                  backgroundColor: this.props.settings.theme.bgPrimary
-                  // backgroundColor: this.props.settings.theme.bgSecondary,
-                },
-              ]}
-            />
-          ) : (
-            <ExpandableCalendar
-              testID={testIDs.expandableCalendar.CONTAINER}
-              theme={{
-                calendarBackground:this.props.settings.theme.bgPrimary,
-                selectedDayBackgroundColor: global.color_theme,
-                selectedDayTextColor: this.props.settings.theme.bgPrimary,
-                selectedDotColor: this.props.settings.theme.bgPrimary,
-                monthTextColor: this.props.settings.theme.textPrimary,
-                arrowColor: global.color_theme,
-                indicatorColor: global.color_theme,
-                dotColor: global.color_theme,
-                todayTextColor: global.color_theme,
-              
-              }}
-              // horizontal={false}
-              // hideArrows
-              // disablePan
-              // hideKnob
-              initialPosition={ExpandableCalendar.positions.OPEN}
-              // calendarStyle={styles.calendar}
-              // headerStyle={styles.calendar} // for horizontal only
-              disableWeekScroll
-              // theme={this.getTheme()}
-              disableAllTouchEventsForDisabledDays
-              firstDay={1}
-              disablePan={true}
-              markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
-              leftArrowImageSource={require('../img/previous.png')}
-              rightArrowImageSource={require('../img/next.png')}
-              
-            />
-          )
-        }
-        {/* <View style={styles.fixToText}>
-          <Button
-            title="Today"
-            onPress={() => this.setTodayDate()}
-            color={global.color_theme}
-          />
-        </View> */}
-        {/* <AgendaList
-          sections={this.state.agendaCalendarItem}
-          extraData={this.state}
-          renderItem={this.renderItem}
-          theme={{
-            calendarBackground: this.props.settings.theme.bgSecondary,
-          }}
-          sectionStyle={(section) => [
-            section.dateString === this.state.selectedDate ? { backgroundColor: 'red' } : {}
-          ]}
-          hideKnob={true}
-        />
-        <ModalAlert
-          onBackdropPress={() => this.setState({ showModalDelete: false })}
-          isVisible={this.state.showModalDelete}
-          title={'Delete Task'}
-          message={'Are you sure you want to delete this Task?'}
-          alertIcon={this.state.alertIcon}
-          buttons={[
-            { text: 'Cancel', onPress: () => this.setState({ showModalDelete: false }), type: 'cancel' },
-            {
-              text: 'Delete', onPress: () => {
-                this.setState({ showModalDelete: false });
-                this.deleteTask();
-              }
-            },
-          ]}
-          dark={this.props.settings.theme.mode === 'dark'}
-          bgColor={this.props.settings.theme.bgPrimary}
-          textColor={this.props.settings.theme.textPrimary}
-        /> */}
-      </CalendarProvider>}
-      </View>
-
-      <View onStartShouldSetResponder={() => this.closeAll()}>
-        <CalendarProvider>
-          <AgendaList
-            sections={this.state.agendaCalendarItem}
-            extraData={this.state}
-            renderItem={this.renderItem}
-            theme={{
-              // calendarBackground:this.props.settings.theme.bgSecondary,
-              calendarBackground:this.props.settings.theme.bgPrimary,
-            }}
-            sectionStyle={section => [
-              section.dateString === this.state.selectedDate
-                ? { backgroundColor: 'red' }
-                : {},
-            ]}
-            hideKnob={true}
-          />
-          <ModalAlert
-            onBackdropPress={() => this.setState({ showModalDelete: false })}
-            isVisible={this.state.showModalDelete}
-            title={'Delete Task'}
-            message={'Are you sure you want to delete this Task?'}
-            alertIcon={this.state.alertIcon}
-            buttons={[
-              {
-                text: 'Cancel',
-                onPress: () => this.setState({ showModalDelete: false }),
-                type: 'cancel',
-              },
-              {
-                text: 'Delete',
-                onPress: () => {
-                  this.setState({ showModalDelete: false });
-                  this.deleteTask();
-                },
-              },
-            ]}
-            dark={this.props.settings.theme.mode === 'dark'}
-            bgColor={this.props.settings.theme.bgPrimary}
-            textColor={this.props.settings.theme.textPrimary}
-          />
-        </CalendarProvider>
-        <Modal
-          isVisible={this.state.isVisible}
-          style={{ padding: 0, margin: 0 }}>
-          <View
-            style={[
-              styles.modalBottom,
-              {
-                backgroundColor: this.props.settings.theme.bgPrimary,
-              },
-            ]}>
-            <FormDropdown
-              value={this.state.type}
-              textColor={this.props.settings.theme.textPrimary}
-              bgColor={this.props.settings.theme.inputBg}
-              label={'Type'}
-              icon={global.icon_dropdown}
-              onPress={() => {
-                this.setState({
-                  alertListVisible: true,
-                  alertListTitle: 'Select Task Type',
-                  alertListData: [],
-                  alertListSave: () => {
-                    this.setState({ alertListVisible: false });
-                  },
-                });
-                this.props.getTaskTypes({ alertListVisible: false });
-              }}
-            />
-          </View>
-        </Modal>
-      </View>
-    </ScrollView>
-  )
-}
-
-
- 
-  render() {
-    console.log('renderrrr', this.props.settings.theme.mode);
-    return (
-    this.scrollData()
-    );
-  }
-}
-
-const styles = StyleSheet.create({
-  calendar: {
-    paddingLeft: 20,
-    paddingRight: 20,
-  },
-  fixToText: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  section: {
-    backgroundColor: 'red', //lightThemeColor,
-    color: 'grey',
-    textTransform: 'capitalize',
-  },
-  item: {
-    padding: 20,
-    backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: 'lightgrey',
-    flexDirection: 'row',
-  },
-  itemHourText: {
-    color: 'black',
-  },
-  itemDurationText: {
-    color: 'grey',
-    fontSize: 10,
-    marginTop: 8,
-    textTransform: 'capitalize',
-  },
-  itemTitleText: {
-    color: 'black',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  itemButtonContainer: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  emptyItem: {
-    paddingLeft: 20,
-    height: 52,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'lightgrey',
-  },
-  emptyItemText: {
-    color: 'lightgrey',
-    fontSize: 14,
-  },
-  rightSwipeItem: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingLeft: 20,
-  },
-  iconStyle: {
-    color: global.color_white,
-    marginLeft: -3,
-    marginBottom: 6,
-  },
-  searchContainer: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchBoxContainer: {
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    flex: 1,
-    height: 50,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchIcon: {
-    width: 20,
-    height: 20,
-    tintColor: global.color_medgray,
-    marginLeft: 15,
-    marginRight: 10,
-    position: 'absolute',
-  },
-  textInput: {
-    fontFamily: global.font_main,
-    fontSize: 18,
-    color: global.color_darkgray,
-    paddingLeft: 40,
-    flex: 1,
-  },
-  filterButton: {
-    width: 50,
-    height: 50,
-    padding: 13,
-    borderRadius: 13,
-    backgroundColor: global.color_theme,
-    marginLeft: 10,
-  },
-  filterIcon: {
-    tintColor: global.color_white,
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-  modalBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 30,
-    paddingBottom: 0,
-    width: '100%',
-    backgroundColor: global.color_white,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-  },
-});
-
-const mapStateToProps = ({ settings, tasks }) => {
-  const { tasksStatus, tasksError, tasksList, tasksCalendarTasks } = tasks;
-  return {
-    settings,
-    tasksStatus,
-    tasksError,
-    tasksList,
-    tasksCalendarTasks,
-  };
-};
-
-export default connect(mapStateToProps, {
-  getCalendarTasks,
-  editTask,
-  deleteTask,
-})(CalendarTask);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import _ from 'lodash';
 // import React, { Component, PureComponent } from 'react';
 // import AsyncStorage from '@react-native-community/async-storage';
@@ -1240,7 +47,7 @@ export default connect(mapStateToProps, {
 // } from '../actions/types';
 // import { FormatTime } from '../utils/Helper';
 // import { backgroundColor, marginRight } from 'styled-system';
-// import { useFocusEffect } from '@react-navigation/native';
+// import {useFocusEffect} from '@react-navigation/native';
 // const testIDs = require('../testIDs');
 
 // const today = new Date().toISOString().split('T')[0];
@@ -1332,8 +139,8 @@ export default connect(mapStateToProps, {
 // class CalendarTask extends Component {
 
 //   constructor(props) {
-//     console.log("propsC", props)
-    
+//     console.log("propsC",props)
+
 //     // useFocusEffect(
 //     //   React.useCallback(() => {
 //     //     const unsubscribe = CalendarTask();
@@ -1341,7 +148,7 @@ export default connect(mapStateToProps, {
 //     //   }, []),
 //     // ),
 //     super(props);
-//     console.log("props", props)
+//     console.log("props",props)
 //     this.state = {
 //       calendarItems: [],
 //       agendaCalendarItem: [],
@@ -1351,7 +158,7 @@ export default connect(mapStateToProps, {
 //       calendarYear: '',
 //       calendarDate: new Date(),
 //       showModalDelete: false,
-//       showCalander: false,
+//       showCalander:false,
 //       didToDelete: '',
 //       agenda: '',
 //       todayDate: '',
@@ -1365,15 +172,19 @@ export default connect(mapStateToProps, {
 //     };
 //     this.selectedRow;
 //     this.component = [];
-//     console.log("first", this.props.settings)
+//     console.log("first",this.props.settings)
 //     // this.render();
-//     // this.refresh()
 //   }
 
+// //  function(params) {
+// //  setTimeout(() => {
+// //     this.setState({showCalander:true})
+// //   }, 300);
+// //  }
 //   componentDidMount() {
-//     // this.render()
-//     // this.refresh()
-//     this.props.getCalendarTasks
+    
+    
+//    this.props.getCalendarTasks
 //     this.props.navigation.setOptions({
 //       title: 'Calendar Tasks',
 //       headerLeft: () => (
@@ -1394,7 +205,7 @@ export default connect(mapStateToProps, {
 //             }>
 //             <Text
 //               style={{
-//                 color: this.props.settings.theme.textPrimary,
+//                 color: '#696969',
 //                 fontSize: 16,
 //                 fontWeight: '700',
 //                 fontFamily: global.font_main,
@@ -1453,20 +264,21 @@ export default connect(mapStateToProps, {
 //   }
 
 //   componentWillReceiveProps(nextProps) {
-//     this.refresh()
+
+
 //     setTimeout(() => {
-//       this.setState({ showCalander: true })
-//     }, 500);
+//       this.setState({showCalander:true})
+//     }, 1000);
 //     if (nextProps.tasksStatus === TASK_DELETETASK_SUCCESS) {
 //       // console.log(nextProps, 'nextProps nextProps')
 //       this.refresh();
 //     }
-//     console.log("show", this.state.showCalander)
-//     // }
+//     console.log("show",this.state.showCalander)
+//   // }
 
-//     // componentWillReceiveProps(nextProps) {
+//   // componentWillReceiveProps(nextProps) {
 //     // console.log(nextProps.tasksCalendarTasks, 'nextProps.tasksCalendarTasks');
-//     // this.render();
+  
 //     let newItems = [];
 //     let lastItem = null;
 //     this.setTodayDate();
@@ -1689,7 +501,7 @@ export default connect(mapStateToProps, {
 //       this.setState({
 //         refreshing: false,
 //       });
-//     }, 500);
+//     }, 2000);
 //   }
 
 //   setDateTimeFormat = date => {
@@ -1975,7 +787,7 @@ export default connect(mapStateToProps, {
 //       year: `${this.state.calendarYear}`,
 //       flag: 1,
 //     });
-//     this.render();
+//     // this.render();
 //   };
 
 //   setTodayDate = () => {
@@ -2006,228 +818,14 @@ export default connect(mapStateToProps, {
 //       this.state.currentlyOpenSwipeable.recenter();
 //     }
 //   };
+ 
 
-
-
-//   render() {
-//     // console.log('renderrrr', this.props.settings.theme.mode);
-//     return (
-//       this.props.settings.theme.mode === "light" ?
-//       <ScrollView
-//         style={{
-//           backgroundColor: 'white'
-//         }}
-//         refreshControl={
-//           <RefreshControl
-//             tintColor={global.color_theme2}
-//             onRefresh={() => this.onRefresh()}
-//             refreshing={this.state.refreshing}
-//           />
-//         }>
-//         <View
-//           style={{ paddingBottom: 35, height: 350, overflow: 'hidden', }}
-//           onStartShouldSetResponder={() => this.closeAll()}>
-//           {/* <Text style={{color:'red'}}>{this.props.settings.theme.bgPrimary}</Text> */}
-
-
-
-//           <CalendarProvider
-
-//             style={{
-//               // backgroundColor: this.props.settings.theme.bgSecondary,
-
-//               backgroundColor: 'white',
-
-//               position: 'relative',
-//             }}
-//             date={
-//               this.state.calendarItems.length > 0 ? this.state.todayDate : ''
-//             }
-//             onDateChanged={this.onDateChanged}
-//             onMonthChange={this.onMonthChange}
-//             showTodayButton
-//             disabledOpacity={0.6}
-//             theme={{
-//               // calendarBackground: this.props.settings.theme.bgSecondary,
-//               calendarBackground: this.props.settings.theme.bgPrimary,
-//               todayButtonTextColor: global.color_theme,
-//             }}
-//             horizontal={true}
-//             // Enable paging on horizontal, default = false
-//             pagingEnabled={true}
-//             todayBottomMargin={15}>
-//             {
-//               //this.props.weekView ?
-//               this.state.weekView ? (
-//                 <WeekCalendar
-//                   testID={testIDs.weekCalendar.CONTAINER}
-//                   firstDay={1}
-//                   markedDates={this.getMarkedDates()}
-//                   style={[
-//                     styles.item,
-//                     {
-//                       backgroundColor: "white"
-//                       // backgroundColor: this.props.settings.theme.bgSecondary,
-//                     },
-//                   ]}
-//                 />
-//               ) : (
-//                 <>
-//                 </>
-//               )
-//                 // <ExpandableCalendar
-//                 //   testID={testIDs.expandableCalendar.CONTAINER}
-//                 //   theme={{
-//                 //     calendarBackground: this.props.settings.theme.bgPrimary,
-//                 //     selectedDayBackgroundColor: global.color_theme,
-//                 //     selectedDayTextColor: this.props.settings.theme.bgPrimary,
-//                 //     selectedDotColor: this.props.settings.theme.bgPrimary,
-//                 //     monthTextColor: this.props.settings.theme.textPrimary,
-//                 //     arrowColor: global.color_theme,
-//                 //     indicatorColor: global.color_theme,
-//                 //     dotColor: global.color_theme,
-//                 //     todayTextColor: global.color_theme,
-
-//                 //   }}
-//                 //   // horizontal={false}
-//                 //   // hideArrows
-//                 //   // disablePan
-//                 //   // hideKnob
-//                 //   initialPosition={ExpandableCalendar.positions.OPEN}
-//                 //   // calendarStyle={styles.calendar}
-//                 //   // headerStyle={styles.calendar} // for horizontal only
-//                 //   disableWeekScroll
-//                 //   // theme={this.getTheme()}
-//                 //   disableAllTouchEventsForDisabledDays
-//                 //   firstDay={1}
-//                 //   disablePan={true}
-//                 //   markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
-//                 //   leftArrowImageSource={require('../img/previous.png')}
-//                 //   rightArrowImageSource={require('../img/next.png')}
-
-//                 // />
-              
-//             }
-//             {/* <View style={styles.fixToText}>
-//             <Button
-//               title="Today"
-//               onPress={() => this.setTodayDate()}
-//               color={global.color_theme}
-//             />
-//           </View> */}
-//             {/* <AgendaList
-//             sections={this.state.agendaCalendarItem}
-//             extraData={this.state}
-//             renderItem={this.renderItem}
-//             theme={{
-//               calendarBackground: this.props.settings.theme.bgSecondary,
-//             }}
-//             sectionStyle={(section) => [
-//               section.dateString === this.state.selectedDate ? { backgroundColor: 'red' } : {}
-//             ]}
-//             hideKnob={true}
-//           />
-//           <ModalAlert
-//             onBackdropPress={() => this.setState({ showModalDelete: false })}
-//             isVisible={this.state.showModalDelete}
-//             title={'Delete Task'}
-//             message={'Are you sure you want to delete this Task?'}
-//             alertIcon={this.state.alertIcon}
-//             buttons={[
-//               { text: 'Cancel', onPress: () => this.setState({ showModalDelete: false }), type: 'cancel' },
-//               {
-//                 text: 'Delete', onPress: () => {
-//                   this.setState({ showModalDelete: false });
-//                   this.deleteTask();
-//                 }
-//               },
-//             ]}
-//             dark={this.props.settings.theme.mode === 'dark'}
-//             bgColor={this.props.settings.theme.bgPrimary}
-//             textColor={this.props.settings.theme.textPrimary}
-//           /> */}
-//           </CalendarProvider>
-//         </View>
-
-//         <View onStartShouldSetResponder={() => this.closeAll()}>
-//           <CalendarProvider>
-//             <AgendaList
-//               sections={this.state.agendaCalendarItem}
-//               extraData={this.state}
-//               renderItem={this.renderItem}
-//               theme={{
-//                 // calendarBackground:this.props.settings.theme.bgSecondary,
-//                 calendarBackground: "white",
-//               }}
-//               sectionStyle={section => [
-//                 section.dateString === this.state.selectedDate
-//                   ? { backgroundColor: 'red' }
-//                   : {},
-//               ]}
-//               hideKnob={true}
-//             />
-//             <ModalAlert
-//               onBackdropPress={() => this.setState({ showModalDelete: false })}
-//               isVisible={this.state.showModalDelete}
-//               title={'Delete Task'}
-//               message={'Are you sure you want to delete this Task?'}
-//               alertIcon={this.state.alertIcon}
-//               buttons={[
-//                 {
-//                   text: 'Cancel',
-//                   onPress: () => this.setState({ showModalDelete: false }),
-//                   type: 'cancel',
-//                 },
-//                 {
-//                   text: 'Delete',
-//                   onPress: () => {
-//                     this.setState({ showModalDelete: false });
-//                     this.deleteTask();
-//                   },
-//                 },
-//               ]}
-//               dark={this.props.settings.theme.mode === 'dark'}
-//               bgColor={this.props.settings.theme.bgPrimary}
-//               textColor={this.props.settings.theme.textPrimary}
-//             />
-//           </CalendarProvider>
-//           <Modal
-//             isVisible={this.state.isVisible}
-//             style={{ padding: 0, margin: 0 }}>
-//             <View
-//               style={[
-//                 styles.modalBottom,
-//                 {
-//                   backgroundColor: this.props.settings.theme.bgPrimary,
-//                 },
-//               ]}>
-//               <FormDropdown
-//                 value={this.state.type}
-//                 textColor={this.props.settings.theme.textPrimary}
-//                 bgColor={this.props.settings.theme.inputBg}
-//                 label={'Type'}
-//                 icon={global.icon_dropdown}
-//                 onPress={() => {
-//                   this.setState({
-//                     alertListVisible: true,
-//                     alertListTitle: 'Select Task Type',
-//                     alertListData: [],
-//                     alertListSave: () => {
-//                       this.setState({ alertListVisible: false });
-//                     },
-//                   });
-//                   this.props.getTaskTypes({ alertListVisible: false });
-//                 }}
-//               />
-//             </View>
-//           </Modal>
-//         </View>
-//       </ScrollView>
-//       :
-//       <ScrollView
-//       style={{
-//         backgroundColor: 'black'
-//       }}
+//  scrollData = ()=> {
+//   return (
+//     <ScrollView
+//     style={{
+//       backgroundColor: this.props.settings.theme.mode === 'light'?'#fff':'#000'
+//     }}
 //       refreshControl={
 //         <RefreshControl
 //           tintColor={global.color_theme2}
@@ -2238,95 +836,92 @@ export default connect(mapStateToProps, {
 //       <View
 //         style={{ paddingBottom: 35, height: 350, overflow: 'hidden', }}
 //         onStartShouldSetResponder={() => this.closeAll()}>
-//         {/* <Text style={{color:'red'}}>{this.props.settings.theme.bgPrimary}</Text> */}
-
-
-
+//         <Text style={{color:'red'}}>{this.props.settings.theme.bgPrimary}</Text>
+        
+//         {this.state.showCalander && 
+      
 //         <CalendarProvider
-
-//           style={{
-//             // backgroundColor: this.props.settings.theme.bgSecondary,
-
-//             backgroundColor: 'black',
-
-//             position: 'relative',
-//           }}
-//           date={
-//             this.state.calendarItems.length > 0 ? this.state.todayDate : ''
-//           }
-//           onDateChanged={this.onDateChanged}
-//           onMonthChange={this.onMonthChange}
-//           showTodayButton
-//           disabledOpacity={0.6}
-//           theme={{
-//             // calendarBackground: this.props.settings.theme.bgSecondary,
-//             calendarBackground: this.props.settings.theme.bgPrimary,
-//             todayButtonTextColor: global.color_theme,
-//           }}
-//           horizontal={true}
-//           // Enable paging on horizontal, default = false
-//           pagingEnabled={true}
-//           todayBottomMargin={15}>
-//           {
-//             //this.props.weekView ?
-//             this.state.weekView ? (
-//               <WeekCalendar
-//                 testID={testIDs.weekCalendar.CONTAINER}
-//                 firstDay={1}
-//                 markedDates={this.getMarkedDates()}
-//                 style={[
-//                   styles.item,
-//                   {
-//                     backgroundColor: "black"
-//                     // backgroundColor: this.props.settings.theme.bgSecondary,
-//                   },
-//                 ]}
-//               />
-//             ) : (
-//               <>
-//               </>
-//             )
-//               // <ExpandableCalendar
-//               //   testID={testIDs.expandableCalendar.CONTAINER}
-//               //   theme={{
-//               //     calendarBackground: this.props.settings.theme.bgPrimary,
-//               //     selectedDayBackgroundColor: global.color_theme,
-//               //     selectedDayTextColor: this.props.settings.theme.bgPrimary,
-//               //     selectedDotColor: this.props.settings.theme.bgPrimary,
-//               //     monthTextColor: this.props.settings.theme.textPrimary,
-//               //     arrowColor: global.color_theme,
-//               //     indicatorColor: global.color_theme,
-//               //     dotColor: global.color_theme,
-//               //     todayTextColor: global.color_theme,
-
-//               //   }}
-//               //   // horizontal={false}
-//               //   // hideArrows
-//               //   // disablePan
-//               //   // hideKnob
-//               //   initialPosition={ExpandableCalendar.positions.OPEN}
-//               //   // calendarStyle={styles.calendar}
-//               //   // headerStyle={styles.calendar} // for horizontal only
-//               //   disableWeekScroll
-//               //   // theme={this.getTheme()}
-//               //   disableAllTouchEventsForDisabledDays
-//               //   firstDay={1}
-//               //   disablePan={true}
-//               //   markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
-//               //   leftArrowImageSource={require('../img/previous.png')}
-//               //   rightArrowImageSource={require('../img/next.png')}
-
-//               // />
-            
-//           }
-//           {/* <View style={styles.fixToText}>
+      
+//         style={{
+//           // backgroundColor: this.props.settings.theme.bgSecondary,
+          
+//           backgroundColor: this.props.settings.theme.bgPrimary,
+          
+//           position: 'relative',
+//         }}
+//         date={
+//           this.state?.calendarItems?.length > 0 ? this.state?.todayDate : ''
+//         }
+//         onDateChanged={this.onDateChanged}
+//         onMonthChange={this.onMonthChange}
+//         showTodayButton
+//         disabledOpacity={0.6}
+//         theme={{
+//           // calendarBackground: this.props.settings.theme.bgSecondary,
+//           calendarBackground: this.props.settings.theme.bgPrimary,
+//           todayButtonTextColor: global.color_theme,
+//         }}
+//         horizontal={true}
+//         // Enable paging on horizontal, default = false
+//         pagingEnabled={true}
+//         todayBottomMargin={15}>
+//         {
+//           //this.props.weekView ?
+//           this.state.weekView ? (
+//             <WeekCalendar
+//               testID={testIDs.weekCalendar.CONTAINER}
+//               firstDay={1}
+//               markedDates={this.getMarkedDates()}
+//               style={[
+//                 styles.item,
+//                 {
+//                   backgroundColor: this.props.settings.theme.bgPrimary
+//                   // backgroundColor: this.props.settings.theme.bgSecondary,
+//                 },
+//               ]}
+//             />
+//           ) : (
+//             <ExpandableCalendar
+//               testID={testIDs.expandableCalendar.CONTAINER}
+//               theme={{
+//                 calendarBackground:this.props.settings.theme.bgPrimary,
+//                 selectedDayBackgroundColor: global.color_theme,
+//                 selectedDayTextColor: this.props.settings.theme.bgPrimary,
+//                 selectedDotColor: this.props.settings.theme.bgPrimary,
+//                 monthTextColor: this.props.settings.theme.textPrimary,
+//                 arrowColor: global.color_theme,
+//                 indicatorColor: global.color_theme,
+//                 dotColor: global.color_theme,
+//                 todayTextColor: global.color_theme,
+              
+//               }}
+//               // horizontal={false}
+//               // hideArrows
+//               // disablePan
+//               // hideKnob
+//               initialPosition={ExpandableCalendar.positions.OPEN}
+//               // calendarStyle={styles.calendar}
+//               // headerStyle={styles.calendar} // for horizontal only
+//               disableWeekScroll
+//               // theme={this.getTheme()}
+//               disableAllTouchEventsForDisabledDays
+//               firstDay={1}
+//               disablePan={true}
+//               markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
+//               leftArrowImageSource={require('../img/previous.png')}
+//               rightArrowImageSource={require('../img/next.png')}
+              
+//             />
+//           )
+//         }
+//         {/* <View style={styles.fixToText}>
 //           <Button
 //             title="Today"
 //             onPress={() => this.setTodayDate()}
 //             color={global.color_theme}
 //           />
 //         </View> */}
-//           {/* <AgendaList
+//         {/* <AgendaList
 //           sections={this.state.agendaCalendarItem}
 //           extraData={this.state}
 //           renderItem={this.renderItem}
@@ -2357,7 +952,7 @@ export default connect(mapStateToProps, {
 //           bgColor={this.props.settings.theme.bgPrimary}
 //           textColor={this.props.settings.theme.textPrimary}
 //         /> */}
-//         </CalendarProvider>
+//       </CalendarProvider>}
 //       </View>
 
 //       <View onStartShouldSetResponder={() => this.closeAll()}>
@@ -2368,7 +963,7 @@ export default connect(mapStateToProps, {
 //             renderItem={this.renderItem}
 //             theme={{
 //               // calendarBackground:this.props.settings.theme.bgSecondary,
-//               calendarBackground: "black",
+//               calendarBackground:this.props.settings.theme.bgPrimary,
 //             }}
 //             sectionStyle={section => [
 //               section.dateString === this.state.selectedDate
@@ -2434,6 +1029,15 @@ export default connect(mapStateToProps, {
 //         </Modal>
 //       </View>
 //     </ScrollView>
+//   )
+// }
+
+
+ 
+//   render() {
+//     console.log('renderrrr', this.props.settings.theme.mode);
+//     return (
+//     this.scrollData()
 //     );
 //   }
 // }
@@ -2572,3 +1176,1946 @@ export default connect(mapStateToProps, {
 //   editTask,
 //   deleteTask,
 // })(CalendarTask);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // import _ from 'lodash';
+// // import React, { Component, PureComponent } from 'react';
+// // import AsyncStorage from '@react-native-community/async-storage';
+// // import moment from 'moment';
+// // import {
+// //   View,
+// //   Text,
+// //   FlatList,
+// //   StyleSheet,
+// //   TouchableOpacity,
+// //   Alert,
+// //   Platform,
+// //   Button,
+// //   Image,
+// //   TextInput,
+// //   RefreshControl,
+// //   ScrollView,
+// // } from 'react-native';
+// // import Swipeable from 'react-native-swipeable';
+// // import { useIsFocused } from '@react-navigation/native'
+// // import {
+// //   ExpandableCalendar,
+// //   AgendaList,
+// //   CalendarProvider,
+// //   WeekCalendar,
+// // } from 'react-native-calendars';
+// // import Swipeout from 'react-native-swipeout';
+// // import { connect } from 'react-redux';
+// // import Modal from 'react-native-modal';
+// // import {
+// //   HeaderButton,
+// //   MiniButton,
+// //   IndicatorBottom,
+// //   CalendarTaskItem,
+// //   ModalChecklist,
+// //   TaskItem,
+// //   ModalAlert,
+// //   FormDropdown,
+// //   FilterButton,
+// // } from '../common';
+// // import { getCalendarTasks, editTask, deleteTask, getTaskTypes } from '../actions';
+// // import {
+// //   TASK_EDITTASK_SUCCESS,
+// //   TASK_DELETETASK_SUCCESS,
+// //   TASK_IDLE,
+// // } from '../actions/types';
+// // import { FormatTime } from '../utils/Helper';
+// // import { backgroundColor, marginRight } from 'styled-system';
+// // import { useFocusEffect } from '@react-navigation/native';
+// // const testIDs = require('../testIDs');
+
+// // const today = new Date().toISOString().split('T')[0];
+// // const fastDate = getPastDate(3);
+// // const futureDates = getFutureDates(9);
+// // const dates = [fastDate, today].concat(futureDates);
+// // const themeColor = 'red'; //'#00AAAF';
+// // const lightThemeColor = 'transparent'; // '#EBF9F9';
+
+// // function getFutureDates(days) {
+// //   const array = [];
+// //   for (let index = 1; index <= days; index++) {
+// //     const date = new Date(Date.now() + 864e5 * index); // 864e5 == 86400000 == 24*60*60*1000
+// //     const dateString = date.toISOString().split('T')[0];
+// //     array.push(dateString);
+// //   }
+// //   return array;
+// // }
+
+
+
+// // function getPastDate(days) {
+// //   return new Date(Date.now() - 864e5 * days).toISOString().split('T')[0];
+// // }
+
+// // const ITEMS = [
+// //   {
+// //     title: dates[0],
+// //     data: [{ hour: '12am', duration: '1h', title: 'First Yoga' }],
+// //   },
+// //   {
+// //     title: dates[1],
+// //     data: [
+// //       { hour: '4pm', duration: '1h', title: 'Pilates ABC' },
+// //       { hour: '5pm', duration: '1h', title: 'Vinyasa Yoga' },
+// //     ],
+// //   },
+// //   {
+// //     title: dates[2],
+// //     data: [
+// //       { hour: '1pm', duration: '1h', title: 'Ashtanga Yoga' },
+// //       { hour: '2pm', duration: '1h', title: 'Deep Streches' },
+// //       { hour: '3pm', duration: '1h', title: 'Private Yoga' },
+// //     ],
+// //   },
+// //   {
+// //     title: dates[3],
+// //     data: [{ hour: '12am', duration: '1h', title: 'Ashtanga Yoga' }],
+// //   },
+// //   { title: dates[4], data: [{}] },
+// //   {
+// //     title: dates[5],
+// //     data: [
+// //       { hour: '9pm', duration: '1h', title: 'Middle Yoga' },
+// //       { hour: '10pm', duration: '1h', title: 'Ashtanga' },
+// //       { hour: '11pm', duration: '1h', title: 'TRX' },
+// //       { hour: '12pm', duration: '1h', title: 'Running Group' },
+// //     ],
+// //   },
+// //   {
+// //     title: dates[6],
+// //     data: [{ hour: '12am', duration: '1h', title: 'Ashtanga Yoga' }],
+// //   },
+// //   { title: dates[7], data: [{}] },
+// //   {
+// //     title: dates[8],
+// //     data: [
+// //       { hour: '9pm', duration: '1h', title: 'Pilates Reformer' },
+// //       { hour: '10pm', duration: '1h', title: 'Ashtanga' },
+// //       { hour: '11pm', duration: '1h', title: 'TRX' },
+// //       { hour: '12pm', duration: '1h', title: 'Running Group' },
+// //     ],
+// //   },
+// //   {
+// //     title: dates[9],
+// //     data: [
+// //       { hour: '1pm', duration: '1h', title: 'Ashtanga Yoga' },
+// //       { hour: '2pm', duration: '1h', title: 'Deep Streches' },
+// //       { hour: '3pm', duration: '1h', title: 'Private Yoga' },
+// //     ],
+// //   },
+// //   {
+// //     title: dates[10],
+// //     data: [{ hour: '12am', duration: '1h', title: 'Last Yoga' }],
+// //   },
+// // ];
+
+
+// // class CalendarTask extends Component {
+
+// //   constructor(props) {
+// //     console.log("propsC", props)
+    
+// //     // useFocusEffect(
+// //     //   React.useCallback(() => {
+// //     //     const unsubscribe = CalendarTask();
+// //     //     return () => unsubscribe;
+// //     //   }, []),
+// //     // ),
+// //     super(props);
+// //     console.log("props", props)
+// //     this.state = {
+// //       calendarItems: [],
+// //       agendaCalendarItem: [],
+// //       selectedDate: new Date(),
+// //       weekView: false,
+// //       calendarMonth: '',
+// //       calendarYear: '',
+// //       calendarDate: new Date(),
+// //       showModalDelete: false,
+// //       showCalander: false,
+// //       didToDelete: '',
+// //       agenda: '',
+// //       todayDate: '',
+
+// //       showFilter: false,
+
+// //       currentlyOpenSwipeable: null,
+// //       agendaApiTimeoutObj: undefined,
+// //       refreshing: true,
+// //       isVisible: false,
+// //     };
+// //     this.selectedRow;
+// //     this.component = [];
+// //     console.log("first", this.props.settings)
+// //     // this.render();
+// //     // this.refresh()
+// //   }
+
+// //   componentDidMount() {
+// //     // this.render()
+// //     // this.refresh()
+// //     this.props.getCalendarTasks
+// //     this.props.navigation.setOptions({
+// //       title: 'Calendar Tasks',
+// //       headerLeft: () => (
+// //         <View
+// //           style={[
+// //             global.styles.headerButtonsContainer,
+// //             { balignItems: 'center', },
+// //           ]}>
+// //           <TouchableOpacity
+// //             style={global.styles.headerButtonsContainer}
+// //             onPress={() =>
+// //               this.props.navigation.navigate('TaskList', {
+// //                 title: 'Task List',
+// //                 route: 'CalendarStack',
+// //                 month: this.state.calendarMonth,
+// //                 year: this.state.calendarYear,
+// //               })
+// //             }>
+// //             <Text
+// //               style={{
+// //                 color: this.props.settings.theme.textPrimary,
+// //                 fontSize: 16,
+// //                 fontWeight: '700',
+// //                 fontFamily: global.font_main,
+// //                 paddingVertical: 10,
+// //               }}>
+// //               {'All'}
+// //             </Text>
+// //           </TouchableOpacity>
+// //         </View>
+// //       ),
+// //       headerRight: () => (
+// //         <View style={global.styles.headerButtonsContainer}>
+// //           <HeaderButton
+// //             icon={global.icon_plus}
+// //             style={{ padding: 10 }}
+// //             mode={this.props.settings.theme.mode}
+// //             //onPress={() => this.addContact()}
+// //             onPress={() =>
+// //               this.props.navigation.navigate('NewTask', {
+// //                 title: 'New Task',
+// //                 route: 'CalendarStack',
+// //               })
+// //             }
+// //           />
+// //         </View>
+// //       ),
+// //     });
+// //     let now = new Date();
+// //     this.setState(
+// //       {
+// //         calendarMonth: now.getMonth() + 1,
+// //         calendarYear: new Date().getFullYear(),
+// //       },
+// //       () => {
+// //         setTimeout(() => {
+// //           this.refresh();
+// //         }, 500);
+// //       },
+// //     );
+// //   }
+
+
+// //   // refresh() {
+// //   //   // this.props.getCalendarTasks({ month: `${now.getMonth() + 1}`, year: `${now.getFullYear()}` });
+// //   //   this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}` });
+
+// //   // }
+
+// //   deleteTask() {
+// //     if (this.state.didToDelete && this.state.didToDelete !== '') {
+// //       this.props.deleteTask({
+// //         did: this.state.didToDelete,
+// //       });
+// //       this.onRefresh();
+// //     }
+// //   }
+
+// //   componentWillReceiveProps(nextProps) {
+// //     this.refresh()
+// //     setTimeout(() => {
+// //       this.setState({ showCalander: true })
+// //     }, 500);
+// //     if (nextProps.tasksStatus === TASK_DELETETASK_SUCCESS) {
+// //       // console.log(nextProps, 'nextProps nextProps')
+// //       this.refresh();
+// //     }
+// //     console.log("show", this.state.showCalander)
+// //     // }
+
+// //     // componentWillReceiveProps(nextProps) {
+// //     // console.log(nextProps.tasksCalendarTasks, 'nextProps.tasksCalendarTasks');
+// //     // this.render();
+// //     let newItems = [];
+// //     let lastItem = null;
+// //     this.setTodayDate();
+// //     if (nextProps.tasksCalendarTasks.length > 0) {
+// //       let tasks = nextProps.tasksCalendarTasks.keySort('date');
+// //       console.log('calender task is as follows ', tasks);
+// //       tasks.map((item, index) => {
+// //         let momentDate = moment(item.date);
+// //         console.log('data of moment is ', momentDate);
+// //         let newTitle = moment(item.date).format('YYYY-MM-DD');
+// //         console.log('new title is as follows ', newTitle);
+// //         if (lastItem) {
+// //           if (lastItem.title === newTitle) {
+// //             let newData = lastItem.data;
+// //             newData.push({
+// //               hour: momentDate.format('hh:mm A'),
+// //               duration: '1h',
+// //               title: item.title,
+// //               dateString: momentDate.format('YYYY-MM-DD'),
+// //               contact: item.contact,
+// //               item: item,
+// //             });
+// //             lastItem = {
+// //               ...lastItem,
+// //               data: newData,
+// //             };
+// //           } else {
+// //             newItems.push(lastItem);
+// //             lastItem = null;
+
+// //             lastItem = {
+// //               title: newTitle,
+// //               dateString: momentDate.format('YYYY-MM-DD'),
+// //               data: [
+// //                 {
+// //                   hour: momentDate.format('hh:mm A'),
+// //                   duration: '1h',
+// //                   title: item.title,
+// //                   dateString: momentDate.format('YYYY-MM-DD'),
+// //                   contact: item.contact,
+// //                   item: item,
+// //                 },
+// //               ],
+// //             };
+// //             console.log('');
+// //           }
+// //         } else {
+// //           lastItem = {
+// //             title: newTitle,
+// //             dateString: momentDate.format('YYYY-MM-DD'),
+// //             data: [
+// //               {
+// //                 hour: momentDate.format('hh:mm A'),
+// //                 duration: '1h',
+// //                 title: item.title,
+// //                 dateString: momentDate.format('YYYY-MM-DD'),
+// //                 contact: item.contact,
+// //                 item: item,
+// //               },
+// //             ],
+// //           };
+// //         }
+
+// //         if (index >= tasks.length - 1) {
+// //           newItems.push(lastItem);
+// //         }
+// //       });
+// //       this.setState({
+// //         calendarItems: newItems,
+// //         agendaCalendarItem: newItems,
+// //       });
+// //     } else {
+// //       let momentDate = moment(this.state.calendarDate);
+// //       let newTitle = momentDate.toISOString().split('T')[0];
+
+// //       lastItem = {
+// //         title: newTitle,
+// //         dateString: momentDate.format('YYYY-MM-DD'),
+// //         data: [],
+// //       };
+// //       newItems.push(lastItem);
+// //       this.setState({
+// //         calendarItems: newItems,
+// //         todayDate: `${new Date().getFullYear()}-${(
+// //           '0' +
+// //           (new Date().getMonth() + 1)
+// //         ).slice(-2)}-${('0' + new Date().getDate()).slice(-2)}`,
+// //         agendaCalendarItem: newItems,
+// //       });
+// //       {
+// //         console.log('xxxpp', this.state.todayDate);
+// //       }
+// //     }
+
+// //     if (
+// //       this.props.tasksStatus === TASK_EDITTASK_SUCCESS &&
+// //       nextProps.tasksStatus === TASK_IDLE
+// //     ) {
+// //       this.refresh();
+// //     }
+
+// //     console.log(newItems, '1');
+// //   }
+
+// //   onDateChanged = (date, updateSource) => {
+// //     // console.log(date, 'date', updateSource);
+// //     if (updateSource == 'dayPress') {
+// //       let task = this.state.calendarItems;
+// //       let filterTask = task.filter(e => e.dateString == date);
+
+// //       // console.warn('ExpandableCalendarScreen onDateChanged: ', date, updateSource);
+// //       // fetch and set data for date + week ahead
+// //       this.setState({
+// //         selectedDate: date,
+// //         agendaCalendarItem: filterTask,
+// //       });
+// //       console.log(date, '18558');
+// //       console.log(filterTask, '5252');
+// //       console.log(task, '52412');
+// //     } else {
+// //       this.setState({
+// //         selectedDate: date,
+// //       });
+// //     }
+// //   };
+
+// //   onMonthChange = (month, updateSource) => {
+// //     if (typeof this.state.agendaApiTimeoutObj !== 'undefined') {
+// //       clearTimeout(this.state.agendaApiTimeoutObj);
+// //     }
+// //     this.state.agendaApiTimeoutObj = setTimeout(() => {
+// //       if (month) {
+// //         AsyncStorage.getItem('newTask').then(response => {
+// //           if (response != '' && response != null) {
+// //             if (JSON.parse(response)) {
+// //               this.props.getCalendarTasks({
+// //                 month: `${month.month}`,
+// //                 year: `${month.year}`,
+// //                 flag: 1,
+// //               });
+// //               this.setState({
+// //                 calendarMonth: month.month,
+// //                 calendarYear: month.year,
+// //                 calendarDate: new Date(month.timestamp),
+// //               });
+// //               //  AsyncStorage.setItem('newTask', JSON.stringify(false));
+// //             } else {
+// //               this.props.getCalendarTasks({
+// //                 month: `${month.month}`,
+// //                 year: `${month.year}`,
+// //               });
+// //               this.setState({
+// //                 calendarMonth: month.month,
+// //                 calendarYear: month.year,
+// //                 calendarDate: new Date(month.timestamp),
+// //               });
+// //             }
+// //           } else {
+// //             this.props.getCalendarTasks({
+// //               month: `${month.month}`,
+// //               year: `${month.year}`,
+// //             });
+// //             this.setState({
+// //               calendarMonth: month.month,
+// //               calendarYear: month.year,
+// //               calendarDate: new Date(month.timestamp),
+// //             });
+// //           }
+// //         });
+// //       }
+// //     }, 400);
+// //   };
+
+// //   buttonPressed() {
+// //     Alert.alert('show more');
+// //   }
+
+// //   itemPressed(id) {
+// //     Alert.alert(id);
+// //   }
+// //   renderEmptyItem() {
+// //     return (
+// //       <View
+// //         style={[
+// //           styles.emptyItem,
+// //           { backgroundColor: this.props.settings.theme.bgSecondary },
+// //         ]}>
+// //         <Text
+// //           style={[
+// //             styles.emptyItemText,
+// //             { color: this.props.settings.theme.textPrimary },
+// //           ]}>
+// //           No Events Planned
+// //         </Text>
+// //       </View>
+// //     );
+// //   }
+
+// //   refresh() {
+// //     // AsyncStorage.getItem('newTask').then((response) => {
+// //     //   if (response != '' && response != null) {
+// //     //     console.log(JSON.parse(response), 'response');
+// //     //     if (JSON.parse(response)) {
+// //     //       console.log(JSON.parse(response), 'response1');
+// //     //       this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}`, flag: 1 });
+// //     //       //  AsyncStorage.setItem('newTask', JSON.stringify(false));
+// //     //     } else {
+// //     //       this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}` });
+// //     //     }
+// //     //   } else {
+// //     //     this.props.getCalendarTasks({ month: `${this.state.calendarMonth}`, year: `${this.state.calendarYear}` });
+// //     //   }
+// //     // });
+// //     this.props.getCalendarTasks({
+// //       month: `${this.state.calendarMonth}`,
+// //       year: `${this.state.calendarYear}`,
+// //       flag: 1,
+// //     });
+// //     setTimeout(() => {
+// //       this.setState({
+// //         refreshing: false,
+// //       });
+// //     }, 500);
+// //   }
+
+// //   setDateTimeFormat = date => {
+// //     return (
+// //       date.split(' ')[0].split('-')[1] +
+// //       '-' +
+// //       date.split(' ')[0].split('-')[2] +
+// //       '-' +
+// //       date.split(' ')[0].split('-')[0] +
+// //       ' (' +
+// //       FormatTime(date.split(' ')[1]) +
+// //       ')'
+// //     );
+// //   };
+
+// //   renderItem = ({ item }) => {
+// //     if (_.isEmpty(item)) {
+// //       return this.renderEmptyItem();
+// //     }
+
+// //     // console.log(item, '*******************');
+// //     // var swipeoutBtns = [
+// //     //   {
+// //     //     text: 'Edit',
+// //     //     color: global.color_white,
+// //     //     backgroundColor: global.color_purple,
+// //     //     onPress: () => this.props.navigation.navigate('NewTask', {
+// //     //       title: 'Edit Task',
+// //     //       // contact: c,
+// //     //       cid: item.item.cid,
+// //     //       task: item,
+// //     //       route: 'CalendarStack',
+// //     //       onNavigateBack: this.refresh.bind(this)
+// //     //     })
+// //     //   },
+// //     //   {
+// //     //     text: 'Delete',
+// //     //     backgroundColor: global.color_red,
+// //     //     onPress: () => {
+// //     //       this.setState({ showModalDelete: true, didToDelete: item.item.did });
+// //     //     }
+// //     //   },
+// //     // ]
+
+// //     return (
+// //       // <Swipeout right={swipeoutBtns} style={{ backgroundColor: 'transparent' }}>
+
+// //       //   <CalendarTaskItem
+// //       //     title={item.item.title}
+// //       //     // subtitle={item.item.contact.first_name ? item.item.contact.first_name : '' + ' ' +
+// //       //     // item.item.contact.last_name ? item.item.contact.last_name : ''}
+// //       //     active={item.item.status === '1'}
+// //       //     bgColor={this.props.settings.theme.bgPrimary}
+// //       //     textColor={this.props.settings.theme.textPrimary}
+// //       //     onPress={() => {
+// //       //       console.log('task item - ' + JSON.stringify(item));
+// //       //       this.props.navigation.navigate('NewTask', {
+// //       //         title: 'Edit Task',
+// //       //         contact: item.item.contact,
+// //       //         //cid: item.item.cid,
+// //       //         task: item.item,
+// //       //         route: 'CalendarStack',
+// //       //         month: this.state.calendarMonth,
+// //       //         year: this.state.calendarYear,
+// //       //         onNavigateBack: this.refresh.bind(this)
+// //       //       });
+// //       //     }}
+// //       //     onPressCheckbox={() => {
+// //       //       // let task = this.props.route.params.task;
+// //       //       let params = {
+// //       //         did: item.item.did,
+// //       //         title: item.item.title,
+// //       //         status: item.item.status === '1' ? '0' : '1'
+// //       //       };
+
+// //       //       this.props.editTask(params);
+// //       //     }}
+// //       //     time={item.hour}
+// //       //     type={item.item.type}
+// //       //   />
+// //       // </Swipeout>
+// //       <Swipeable
+// //         ref={c => {
+// //           this.selectedRow = c;
+// //         }}
+// //         rightButtons={[
+// //           <TouchableOpacity
+// //             style={[
+// //               styles.rightSwipeItem,
+// //               { backgroundColor: global.color_purple },
+// //             ]}
+// //             onPress={() => {
+// //               this.props.navigation.navigate('NewTask', {
+// //                 title: 'Edit Task',
+// //                 contact: item.item.contact,
+// //                 //cid: item.item.cid,
+// //                 task: item.item,
+// //                 route: 'CalendarStack',
+// //                 month: this.state.calendarMonth,
+// //                 year: this.state.calendarYear,
+// //                 onNavigateBack: this.refresh.bind(this),
+// //               });
+// //               this.closeAll();
+// //             }}>
+// //             <MiniButton
+// //               icon={global.icon_pencil}
+// //               color={global.color_purple}
+// //               style={{ marginLeft: 1, marginBottom: -5 }}
+// //               onPress={() => {
+// //                 this.props.navigation.navigate('NewTask', {
+// //                   title: 'Edit Task',
+// //                   contact: item.item.contact,
+// //                   //cid: item.item.cid,
+// //                   task: item.item,
+// //                   route: 'CalendarStack',
+// //                   month: this.state.calendarMonth,
+// //                   year: this.state.calendarYear,
+// //                   onNavigateBack: this.refresh.bind(this),
+// //                 });
+// //                 this.closeAll();
+// //               }}
+// //             />
+// //             <Text
+// //               style={{
+// //                 color: global.color_white,
+// //                 marginLeft: 5,
+// //                 marginBottom: 5,
+// //               }}>
+// //               Edit
+// //             </Text>
+// //           </TouchableOpacity>,
+// //           <TouchableOpacity
+// //             style={[styles.rightSwipeItem, { backgroundColor: global.color_red }]}
+// //             onPress={() => {
+// //               this.setState({
+// //                 showModalDelete: true,
+// //                 didToDelete: item.item.did,
+// //               });
+// //               this.closeAll();
+// //             }}>
+// //             <MiniButton
+// //               icon={global.icon_delete}
+// //               color={global.color_red}
+// //               style={{ marginLeft: -1, marginBottom: -4 }}
+// //               onPress={() => {
+// //                 this.setState({
+// //                   showModalDelete: true,
+// //                   didToDelete: item.item.did,
+// //                 });
+// //                 this.closeAll();
+// //               }}
+// //             />
+// //             <Text style={styles.iconStyle}>Delete</Text>
+// //           </TouchableOpacity>,
+// //         ]}
+// //         onRightButtonsOpenRelease={this.onOpen}
+// //         onRightButtonsCloseRelease={this.onClose}>
+// //         {/* <CalendarTaskItem
+// //           title={item.item.title}
+// //           // subtitle={item.item.contact.first_name ? item.item.contact.first_name : '' + ' ' + 
+// //           // item.item.contact.last_name ? item.item.contact.last_name : ''}
+// //           active={item.item.status === '1'}
+// //           bgColor={this.props.settings.theme.bgPrimary}
+// //           textColor={this.props.settings.theme.textPrimary}
+// //           onPress={() => {
+// //             console.log('task item - ' + JSON.stringify(item));
+// //             this.props.navigation.navigate('NewTask', {
+// //               title: 'Edit Task',
+// //               contact: item.item.contact,
+// //               //cid: item.item.cid,
+// //               task: item.item,
+// //               route: 'CalendarStack',
+// //               month: this.state.calendarMonth,
+// //               year: this.state.calendarYear,
+// //               onNavigateBack: this.refresh.bind(this)
+// //             });
+// //           }}
+// //           onPressCheckbox={() => {
+// //             // let task = this.props.route.params.task;
+// //             let params = {
+// //               did: item.item.did,
+// //               title: item.item.title,
+// //               status: item.item.status === '1' ? '0' : '1'
+// //             };
+
+// //             this.props.editTask(params);
+// //           }}
+// //           time={item.hour}
+// //           type={item.item.type}
+// //         /> */}
+// //         <TaskItem
+// //           title={item.item.title}
+// //           subtitle={
+// //             this.setDateTimeFormat(item.item.date) + ' ' + item.item.type
+// //           }
+// //           active={item.item.status === '1'}
+// //           bgColor={this.props.settings.theme.bgPrimary}
+// //           textColor={this.props.settings.theme.textPrimary}
+// //           onPress={() => {
+// //             // console.log('task item - ' + JSON.stringify(item));
+// //             this.props.navigation.navigate('NewTask', {
+// //               title: 'Edit Task',
+// //               contact: item.item.contact,
+// //               //cid: item.item.cid,
+// //               task: item.item,
+// //               route: 'CalendarStack',
+// //               onNavigateBack: this.refresh.bind(this),
+// //             });
+// //           }}
+// //           onPressCheckbox={() => {
+// //             // let task = this.props.route.params.task;
+// //             let params = {
+// //               did: item.item.did,
+// //               title: item.item.title,
+// //               status: item.item.status === '1' ? '0' : '1',
+// //             };
+
+// //             this.props.editTask(params);
+// //           }}
+// //         />
+// //       </Swipeable>
+
+// //     );
+// //   };
+
+// //   getMarkedDates = () => {
+// //     const marked = {};
+// //     this.state.calendarItems.forEach(item => {
+// //       // NOTE: only mark dates with data
+// //       if (item.data && item.data.length > 0 && !_.isEmpty(item.data[0])) {
+// //         marked[item.dateString] = { marked: true };
+// //       } else {
+// //         marked[item.dateString] = { disabled: true };
+// //       }
+// //     });
+// //     return marked;
+// //   };
+
+// //   getTheme = () => {
+// //     const disabledColor = 'grey';
+// //     // const disabledColor = 'grey';
+// //     return {
+// //       // arrows
+// //       arrowColor: 'black',
+// //       arrowStyle: { padding: 0 },
+// //       // month
+// //       monthTextColor: 'black',
+// //       textMonthFontSize: 16,
+// //       textMonthFontFamily: 'HelveticaNeue',
+// //       textMonthFontWeight: 'bold',
+// //       // day names
+// //       textSectionTitleColor: 'black',
+// //       textDayHeaderFontSize: 12,
+// //       textDayHeaderFontFamily: 'HelveticaNeue',
+// //       textDayHeaderFontWeight: 'normal',
+// //       // dates
+// //       dayTextColor: themeColor,
+// //       textDayFontSize: 18,
+// //       textDayFontFamily: 'HelveticaNeue',
+// //       textDayFontWeight: '500',
+// //       textDayStyle: { marginTop: Platform.OS === 'android' ? 2 : 4 },
+// //       // selected date
+// //       selectedDayBackgroundColor: themeColor,
+// //       selectedDayTextColor: 'white',
+// //       // disabled date
+// //       textDisabledColor: disabledColor,
+// //       // dot (marked date)
+// //       dotColor: themeColor,
+// //       selectedDotColor: 'white',
+// //       disabledDotColor: disabledColor,
+// //       dotStyle: { marginTop: -2 },
+// //     };
+// //   };
+
+// //   onRefresh = () => {
+// //     console.log('refresh', {
+// //       month: `${this.state.calendarMonth}`,
+// //       year: `${this.state.calendarYear}`,
+// //       flag: 1,
+// //     });
+// //     this.props.getCalendarTasks({
+// //       month: `${this.state.calendarMonth}`,
+// //       year: `${this.state.calendarYear}`,
+// //       flag: 1,
+// //     });
+// //     this.render();
+// //   };
+
+// //   setTodayDate = () => {
+// //     let date = `${new Date().getFullYear()}-${(
+// //       '0' +
+// //       (new Date().getMonth() + 1)
+// //     ).slice(-2)}-${('0' + new Date().getDate()).slice(-2)}`;
+// //     this.setState({ todayDate: date });
+// //     // this.render();
+// //   };
+
+// //   onOpen = (event, gestureState, swipeable) => {
+// //     if (
+// //       this.state.currentlyOpenSwipeable &&
+// //       this.state.currentlyOpenSwipeable !== swipeable
+// //     ) {
+// //       this.state.currentlyOpenSwipeable.recenter();
+// //     }
+// //     this.setState({ currentlyOpenSwipeable: swipeable });
+// //   };
+
+// //   onClose = () => {
+// //     this.setState({ currentlyOpenSwipeable: null });
+// //   };
+
+// //   closeAll = () => {
+// //     if (this.state.currentlyOpenSwipeable) {
+// //       this.state.currentlyOpenSwipeable.recenter();
+// //     }
+// //   };
+
+
+
+// //   render() {
+// //     // console.log('renderrrr', this.props.settings.theme.mode);
+// //     return (
+// //       this.props.settings.theme.mode === "light" ?
+// //       <ScrollView
+// //         style={{
+// //           backgroundColor: 'white'
+// //         }}
+// //         refreshControl={
+// //           <RefreshControl
+// //             tintColor={global.color_theme2}
+// //             onRefresh={() => this.onRefresh()}
+// //             refreshing={this.state.refreshing}
+// //           />
+// //         }>
+// //         <View
+// //           style={{ paddingBottom: 35, height: 350, overflow: 'hidden', }}
+// //           onStartShouldSetResponder={() => this.closeAll()}>
+// //           {/* <Text style={{color:'red'}}>{this.props.settings.theme.bgPrimary}</Text> */}
+
+
+
+// //           <CalendarProvider
+
+// //             style={{
+// //               // backgroundColor: this.props.settings.theme.bgSecondary,
+
+// //               backgroundColor: 'white',
+
+// //               position: 'relative',
+// //             }}
+// //             date={
+// //               this.state.calendarItems.length > 0 ? this.state.todayDate : ''
+// //             }
+// //             onDateChanged={this.onDateChanged}
+// //             onMonthChange={this.onMonthChange}
+// //             showTodayButton
+// //             disabledOpacity={0.6}
+// //             theme={{
+// //               // calendarBackground: this.props.settings.theme.bgSecondary,
+// //               calendarBackground: this.props.settings.theme.bgPrimary,
+// //               todayButtonTextColor: global.color_theme,
+// //             }}
+// //             horizontal={true}
+// //             // Enable paging on horizontal, default = false
+// //             pagingEnabled={true}
+// //             todayBottomMargin={15}>
+// //             {
+// //               //this.props.weekView ?
+// //               this.state.weekView ? (
+// //                 <WeekCalendar
+// //                   testID={testIDs.weekCalendar.CONTAINER}
+// //                   firstDay={1}
+// //                   markedDates={this.getMarkedDates()}
+// //                   style={[
+// //                     styles.item,
+// //                     {
+// //                       backgroundColor: "white"
+// //                       // backgroundColor: this.props.settings.theme.bgSecondary,
+// //                     },
+// //                   ]}
+// //                 />
+// //               ) : (
+// //                 <>
+// //                 </>
+// //               )
+// //                 // <ExpandableCalendar
+// //                 //   testID={testIDs.expandableCalendar.CONTAINER}
+// //                 //   theme={{
+// //                 //     calendarBackground: this.props.settings.theme.bgPrimary,
+// //                 //     selectedDayBackgroundColor: global.color_theme,
+// //                 //     selectedDayTextColor: this.props.settings.theme.bgPrimary,
+// //                 //     selectedDotColor: this.props.settings.theme.bgPrimary,
+// //                 //     monthTextColor: this.props.settings.theme.textPrimary,
+// //                 //     arrowColor: global.color_theme,
+// //                 //     indicatorColor: global.color_theme,
+// //                 //     dotColor: global.color_theme,
+// //                 //     todayTextColor: global.color_theme,
+
+// //                 //   }}
+// //                 //   // horizontal={false}
+// //                 //   // hideArrows
+// //                 //   // disablePan
+// //                 //   // hideKnob
+// //                 //   initialPosition={ExpandableCalendar.positions.OPEN}
+// //                 //   // calendarStyle={styles.calendar}
+// //                 //   // headerStyle={styles.calendar} // for horizontal only
+// //                 //   disableWeekScroll
+// //                 //   // theme={this.getTheme()}
+// //                 //   disableAllTouchEventsForDisabledDays
+// //                 //   firstDay={1}
+// //                 //   disablePan={true}
+// //                 //   markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
+// //                 //   leftArrowImageSource={require('../img/previous.png')}
+// //                 //   rightArrowImageSource={require('../img/next.png')}
+
+// //                 // />
+              
+// //             }
+// //             {/* <View style={styles.fixToText}>
+// //             <Button
+// //               title="Today"
+// //               onPress={() => this.setTodayDate()}
+// //               color={global.color_theme}
+// //             />
+// //           </View> */}
+// //             {/* <AgendaList
+// //             sections={this.state.agendaCalendarItem}
+// //             extraData={this.state}
+// //             renderItem={this.renderItem}
+// //             theme={{
+// //               calendarBackground: this.props.settings.theme.bgSecondary,
+// //             }}
+// //             sectionStyle={(section) => [
+// //               section.dateString === this.state.selectedDate ? { backgroundColor: 'red' } : {}
+// //             ]}
+// //             hideKnob={true}
+// //           />
+// //           <ModalAlert
+// //             onBackdropPress={() => this.setState({ showModalDelete: false })}
+// //             isVisible={this.state.showModalDelete}
+// //             title={'Delete Task'}
+// //             message={'Are you sure you want to delete this Task?'}
+// //             alertIcon={this.state.alertIcon}
+// //             buttons={[
+// //               { text: 'Cancel', onPress: () => this.setState({ showModalDelete: false }), type: 'cancel' },
+// //               {
+// //                 text: 'Delete', onPress: () => {
+// //                   this.setState({ showModalDelete: false });
+// //                   this.deleteTask();
+// //                 }
+// //               },
+// //             ]}
+// //             dark={this.props.settings.theme.mode === 'dark'}
+// //             bgColor={this.props.settings.theme.bgPrimary}
+// //             textColor={this.props.settings.theme.textPrimary}
+// //           /> */}
+// //           </CalendarProvider>
+// //         </View>
+
+// //         <View onStartShouldSetResponder={() => this.closeAll()}>
+// //           <CalendarProvider>
+// //             <AgendaList
+// //               sections={this.state.agendaCalendarItem}
+// //               extraData={this.state}
+// //               renderItem={this.renderItem}
+// //               theme={{
+// //                 // calendarBackground:this.props.settings.theme.bgSecondary,
+// //                 calendarBackground: "white",
+// //               }}
+// //               sectionStyle={section => [
+// //                 section.dateString === this.state.selectedDate
+// //                   ? { backgroundColor: 'red' }
+// //                   : {},
+// //               ]}
+// //               hideKnob={true}
+// //             />
+// //             <ModalAlert
+// //               onBackdropPress={() => this.setState({ showModalDelete: false })}
+// //               isVisible={this.state.showModalDelete}
+// //               title={'Delete Task'}
+// //               message={'Are you sure you want to delete this Task?'}
+// //               alertIcon={this.state.alertIcon}
+// //               buttons={[
+// //                 {
+// //                   text: 'Cancel',
+// //                   onPress: () => this.setState({ showModalDelete: false }),
+// //                   type: 'cancel',
+// //                 },
+// //                 {
+// //                   text: 'Delete',
+// //                   onPress: () => {
+// //                     this.setState({ showModalDelete: false });
+// //                     this.deleteTask();
+// //                   },
+// //                 },
+// //               ]}
+// //               dark={this.props.settings.theme.mode === 'dark'}
+// //               bgColor={this.props.settings.theme.bgPrimary}
+// //               textColor={this.props.settings.theme.textPrimary}
+// //             />
+// //           </CalendarProvider>
+// //           <Modal
+// //             isVisible={this.state.isVisible}
+// //             style={{ padding: 0, margin: 0 }}>
+// //             <View
+// //               style={[
+// //                 styles.modalBottom,
+// //                 {
+// //                   backgroundColor: this.props.settings.theme.bgPrimary,
+// //                 },
+// //               ]}>
+// //               <FormDropdown
+// //                 value={this.state.type}
+// //                 textColor={this.props.settings.theme.textPrimary}
+// //                 bgColor={this.props.settings.theme.inputBg}
+// //                 label={'Type'}
+// //                 icon={global.icon_dropdown}
+// //                 onPress={() => {
+// //                   this.setState({
+// //                     alertListVisible: true,
+// //                     alertListTitle: 'Select Task Type',
+// //                     alertListData: [],
+// //                     alertListSave: () => {
+// //                       this.setState({ alertListVisible: false });
+// //                     },
+// //                   });
+// //                   this.props.getTaskTypes({ alertListVisible: false });
+// //                 }}
+// //               />
+// //             </View>
+// //           </Modal>
+// //         </View>
+// //       </ScrollView>
+// //       :
+// //       <ScrollView
+// //       style={{
+// //         backgroundColor: 'black'
+// //       }}
+// //       refreshControl={
+// //         <RefreshControl
+// //           tintColor={global.color_theme2}
+// //           onRefresh={() => this.onRefresh()}
+// //           refreshing={this.state.refreshing}
+// //         />
+// //       }>
+// //       <View
+// //         style={{ paddingBottom: 35, height: 350, overflow: 'hidden', }}
+// //         onStartShouldSetResponder={() => this.closeAll()}>
+// //         {/* <Text style={{color:'red'}}>{this.props.settings.theme.bgPrimary}</Text> */}
+
+
+
+// //         <CalendarProvider
+
+// //           style={{
+// //             // backgroundColor: this.props.settings.theme.bgSecondary,
+
+// //             backgroundColor: 'black',
+
+// //             position: 'relative',
+// //           }}
+// //           date={
+// //             this.state.calendarItems.length > 0 ? this.state.todayDate : ''
+// //           }
+// //           onDateChanged={this.onDateChanged}
+// //           onMonthChange={this.onMonthChange}
+// //           showTodayButton
+// //           disabledOpacity={0.6}
+// //           theme={{
+// //             // calendarBackground: this.props.settings.theme.bgSecondary,
+// //             calendarBackground: this.props.settings.theme.bgPrimary,
+// //             todayButtonTextColor: global.color_theme,
+// //           }}
+// //           horizontal={true}
+// //           // Enable paging on horizontal, default = false
+// //           pagingEnabled={true}
+// //           todayBottomMargin={15}>
+// //           {
+// //             //this.props.weekView ?
+// //             this.state.weekView ? (
+// //               <WeekCalendar
+// //                 testID={testIDs.weekCalendar.CONTAINER}
+// //                 firstDay={1}
+// //                 markedDates={this.getMarkedDates()}
+// //                 style={[
+// //                   styles.item,
+// //                   {
+// //                     backgroundColor: "black"
+// //                     // backgroundColor: this.props.settings.theme.bgSecondary,
+// //                   },
+// //                 ]}
+// //               />
+// //             ) : (
+// //               <>
+// //               </>
+// //             )
+// //               // <ExpandableCalendar
+// //               //   testID={testIDs.expandableCalendar.CONTAINER}
+// //               //   theme={{
+// //               //     calendarBackground: this.props.settings.theme.bgPrimary,
+// //               //     selectedDayBackgroundColor: global.color_theme,
+// //               //     selectedDayTextColor: this.props.settings.theme.bgPrimary,
+// //               //     selectedDotColor: this.props.settings.theme.bgPrimary,
+// //               //     monthTextColor: this.props.settings.theme.textPrimary,
+// //               //     arrowColor: global.color_theme,
+// //               //     indicatorColor: global.color_theme,
+// //               //     dotColor: global.color_theme,
+// //               //     todayTextColor: global.color_theme,
+
+// //               //   }}
+// //               //   // horizontal={false}
+// //               //   // hideArrows
+// //               //   // disablePan
+// //               //   // hideKnob
+// //               //   initialPosition={ExpandableCalendar.positions.OPEN}
+// //               //   // calendarStyle={styles.calendar}
+// //               //   // headerStyle={styles.calendar} // for horizontal only
+// //               //   disableWeekScroll
+// //               //   // theme={this.getTheme()}
+// //               //   disableAllTouchEventsForDisabledDays
+// //               //   firstDay={1}
+// //               //   disablePan={true}
+// //               //   markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
+// //               //   leftArrowImageSource={require('../img/previous.png')}
+// //               //   rightArrowImageSource={require('../img/next.png')}
+
+// //               // />
+            
+// //           }
+// //           {/* <View style={styles.fixToText}>
+// //           <Button
+// //             title="Today"
+// //             onPress={() => this.setTodayDate()}
+// //             color={global.color_theme}
+// //           />
+// //         </View> */}
+// //           {/* <AgendaList
+// //           sections={this.state.agendaCalendarItem}
+// //           extraData={this.state}
+// //           renderItem={this.renderItem}
+// //           theme={{
+// //             calendarBackground: this.props.settings.theme.bgSecondary,
+// //           }}
+// //           sectionStyle={(section) => [
+// //             section.dateString === this.state.selectedDate ? { backgroundColor: 'red' } : {}
+// //           ]}
+// //           hideKnob={true}
+// //         />
+// //         <ModalAlert
+// //           onBackdropPress={() => this.setState({ showModalDelete: false })}
+// //           isVisible={this.state.showModalDelete}
+// //           title={'Delete Task'}
+// //           message={'Are you sure you want to delete this Task?'}
+// //           alertIcon={this.state.alertIcon}
+// //           buttons={[
+// //             { text: 'Cancel', onPress: () => this.setState({ showModalDelete: false }), type: 'cancel' },
+// //             {
+// //               text: 'Delete', onPress: () => {
+// //                 this.setState({ showModalDelete: false });
+// //                 this.deleteTask();
+// //               }
+// //             },
+// //           ]}
+// //           dark={this.props.settings.theme.mode === 'dark'}
+// //           bgColor={this.props.settings.theme.bgPrimary}
+// //           textColor={this.props.settings.theme.textPrimary}
+// //         /> */}
+// //         </CalendarProvider>
+// //       </View>
+
+// //       <View onStartShouldSetResponder={() => this.closeAll()}>
+// //         <CalendarProvider>
+// //           <AgendaList
+// //             sections={this.state.agendaCalendarItem}
+// //             extraData={this.state}
+// //             renderItem={this.renderItem}
+// //             theme={{
+// //               // calendarBackground:this.props.settings.theme.bgSecondary,
+// //               calendarBackground: "black",
+// //             }}
+// //             sectionStyle={section => [
+// //               section.dateString === this.state.selectedDate
+// //                 ? { backgroundColor: 'red' }
+// //                 : {},
+// //             ]}
+// //             hideKnob={true}
+// //           />
+// //           <ModalAlert
+// //             onBackdropPress={() => this.setState({ showModalDelete: false })}
+// //             isVisible={this.state.showModalDelete}
+// //             title={'Delete Task'}
+// //             message={'Are you sure you want to delete this Task?'}
+// //             alertIcon={this.state.alertIcon}
+// //             buttons={[
+// //               {
+// //                 text: 'Cancel',
+// //                 onPress: () => this.setState({ showModalDelete: false }),
+// //                 type: 'cancel',
+// //               },
+// //               {
+// //                 text: 'Delete',
+// //                 onPress: () => {
+// //                   this.setState({ showModalDelete: false });
+// //                   this.deleteTask();
+// //                 },
+// //               },
+// //             ]}
+// //             dark={this.props.settings.theme.mode === 'dark'}
+// //             bgColor={this.props.settings.theme.bgPrimary}
+// //             textColor={this.props.settings.theme.textPrimary}
+// //           />
+// //         </CalendarProvider>
+// //         <Modal
+// //           isVisible={this.state.isVisible}
+// //           style={{ padding: 0, margin: 0 }}>
+// //           <View
+// //             style={[
+// //               styles.modalBottom,
+// //               {
+// //                 backgroundColor: this.props.settings.theme.bgPrimary,
+// //               },
+// //             ]}>
+// //             <FormDropdown
+// //               value={this.state.type}
+// //               textColor={this.props.settings.theme.textPrimary}
+// //               bgColor={this.props.settings.theme.inputBg}
+// //               label={'Type'}
+// //               icon={global.icon_dropdown}
+// //               onPress={() => {
+// //                 this.setState({
+// //                   alertListVisible: true,
+// //                   alertListTitle: 'Select Task Type',
+// //                   alertListData: [],
+// //                   alertListSave: () => {
+// //                     this.setState({ alertListVisible: false });
+// //                   },
+// //                 });
+// //                 this.props.getTaskTypes({ alertListVisible: false });
+// //               }}
+// //             />
+// //           </View>
+// //         </Modal>
+// //       </View>
+// //     </ScrollView>
+// //     );
+// //   }
+// // }
+
+// // const styles = StyleSheet.create({
+// //   calendar: {
+// //     paddingLeft: 20,
+// //     paddingRight: 20,
+// //   },
+// //   fixToText: {
+// //     flexDirection: 'row',
+// //     justifyContent: 'space-between',
+// //   },
+// //   section: {
+// //     backgroundColor: 'red', //lightThemeColor,
+// //     color: 'grey',
+// //     textTransform: 'capitalize',
+// //   },
+// //   item: {
+// //     padding: 20,
+// //     backgroundColor: 'transparent',
+// //     borderBottomWidth: 1,
+// //     borderBottomColor: 'lightgrey',
+// //     flexDirection: 'row',
+// //   },
+// //   itemHourText: {
+// //     color: 'black',
+// //   },
+// //   itemDurationText: {
+// //     color: 'grey',
+// //     fontSize: 10,
+// //     marginTop: 8,
+// //     textTransform: 'capitalize',
+// //   },
+// //   itemTitleText: {
+// //     color: 'black',
+// //     fontWeight: 'bold',
+// //     fontSize: 14,
+// //   },
+// //   itemButtonContainer: {
+// //     flex: 1,
+// //     alignItems: 'flex-end',
+// //   },
+// //   emptyItem: {
+// //     paddingLeft: 20,
+// //     height: 52,
+// //     justifyContent: 'center',
+// //     borderBottomWidth: 1,
+// //     borderBottomColor: 'lightgrey',
+// //   },
+// //   emptyItemText: {
+// //     color: 'lightgrey',
+// //     fontSize: 14,
+// //   },
+// //   rightSwipeItem: {
+// //     flex: 1,
+// //     justifyContent: 'center',
+// //     paddingLeft: 20,
+// //   },
+// //   iconStyle: {
+// //     color: global.color_white,
+// //     marginLeft: -3,
+// //     marginBottom: 6,
+// //   },
+// //   searchContainer: {
+// //     paddingTop: 10,
+// //     paddingHorizontal: 20,
+// //     marginBottom: 10,
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //   },
+// //   searchBoxContainer: {
+// //     backgroundColor: 'rgba(0,0,0,0.08)',
+// //     flex: 1,
+// //     height: 50,
+// //     borderRadius: 10,
+// //     flexDirection: 'row',
+// //     alignItems: 'center',
+// //   },
+// //   searchIcon: {
+// //     width: 20,
+// //     height: 20,
+// //     tintColor: global.color_medgray,
+// //     marginLeft: 15,
+// //     marginRight: 10,
+// //     position: 'absolute',
+// //   },
+// //   textInput: {
+// //     fontFamily: global.font_main,
+// //     fontSize: 18,
+// //     color: global.color_darkgray,
+// //     paddingLeft: 40,
+// //     flex: 1,
+// //   },
+// //   filterButton: {
+// //     width: 50,
+// //     height: 50,
+// //     padding: 13,
+// //     borderRadius: 13,
+// //     backgroundColor: global.color_theme,
+// //     marginLeft: 10,
+// //   },
+// //   filterIcon: {
+// //     tintColor: global.color_white,
+// //     width: '100%',
+// //     height: '100%',
+// //     resizeMode: 'contain',
+// //   },
+// //   modalBottom: {
+// //     position: 'absolute',
+// //     bottom: 0,
+// //     left: 0,
+// //     right: 0,
+// //     padding: 30,
+// //     paddingBottom: 0,
+// //     width: '100%',
+// //     backgroundColor: global.color_white,
+// //     borderTopLeftRadius: 40,
+// //     borderTopRightRadius: 40,
+// //   },
+// // });
+
+// // const mapStateToProps = ({ settings, tasks }) => {
+// //   const { tasksStatus, tasksError, tasksList, tasksCalendarTasks } = tasks;
+// //   return {
+// //     settings,
+// //     tasksStatus,
+// //     tasksError,
+// //     tasksList,
+// //     tasksCalendarTasks,
+// //   };
+// // };
+
+// // export default connect(mapStateToProps, {
+// //   getCalendarTasks,
+// //   editTask,
+// //   deleteTask,
+// // })(CalendarTask);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// route1
+
+
+
+
+
+
+import React, {Component} from 'react';
+import {View, Text, Image, Alert, StatusBar} from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {createStackNavigator} from '@react-navigation/stack';
+import {connect} from 'react-redux';
+import {getSettings, setAppMode} from './actions';
+import {
+  HomeScreen,
+  Contacts,
+  ContactDetails,
+  ContactAdd,
+  PhoneAndText,
+  Emails,
+  CalendarTask,
+  Menu,
+  EditContact,
+  SignIn,
+  SignUp,
+  StartScreen,
+  EmailCompose,
+  EmailDetails,
+  CreateScreen,
+  NewTask,
+  TaskList,
+  NewTaskContacts,
+  NewNote,
+  EditAccountInfo,
+  EditSignature,
+  EmailContactList,
+  PasswordReset,
+  PasswordChange,
+  SplashScreen,
+  TutorialScreen,
+} from './screens';
+import './utils/Global';
+import Login from './screens/Login';
+
+class Router2 extends Component {
+  static navigationOptions = ({navigation}) => {
+    const {params} = navigation.state;
+    return params;
+  };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      mode:''
+    };
+   
+  }
+
+  
+
+  componentDidUpdate(){
+    this.props.getSettings();
+  
+    if(this.state.mode!==this.props.settings.theme.mode){
+      this.setState({mode:this.props.settings.theme.mode})
+    }
+    console.log("routeparams",this.state.mode)
+  }
+ 
+
+  componentWillMount() {
+    this.props.getSettings();
+    
+    // console.log("route.params",this.props.settings.theme.mode)
+
+    if (Platform.OS !== 'ios' && this.props.settings.theme.mode !== 'light') {
+      setTimeout(() => this.props.setAppMode({mode: 'light'}), 300);
+    }
+  }
+
+  render() {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator
+          //screenOptions={{ ...transparentNavbar, headerLeft: null }}
+          //screenOptions={transparentNavbar}
+          mode={'modal'}>
+          <Stack.Screen
+            name="SplashScreen"
+            component={SplashScreen}
+            options={{headerShown: false}}
+          />
+          <Stack.Screen
+            name="StartScreen"
+            component={StartScreen}
+            options={{headerShown: false}}
+          />
+          <Stack.Screen
+            name="SignIn"
+            component={SignIn}
+            options={{headerShown: false}}
+          />
+          <Stack.Screen
+            name="Login"
+            component={Login}
+            options={{headerShown: false}}
+          />
+          <Stack.Screen
+            name="MainStack"
+            options={{headerShown: false}}
+            component={MainStack}
+            initialParams={{theme: this.props.settings.theme , mode:this.state.mode}}
+          />
+          <Stack.Screen
+            name="PasswordResetStack"
+            options={{headerShown: false}}
+            component={PasswordResetStack}
+            initialParams={{theme: this.props.settings.theme , mode:this.state.mode}}
+          />
+          <Stack.Screen
+            name="EmailComposeStack"
+            options={{headerShown: false}}
+            component={EmailComposeStack}
+            initialParams={{theme: this.props.settings.theme , mode:this.state.mode}} 
+            />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+}
+
+const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+function MainStack(data) {
+
+ 
+
+  return (
+    <Stack.Navigator screenOptions={commonNavbar}>
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabs}
+        options={{...transparentNavbar, headerLeft: null}}
+        initialParams={data}
+      />
+
+      <Stack.Screen
+        name="ContactAdd"
+        component={ContactAdd}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="EditContact"
+        component={EditContact}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="ContactDetails"
+        component={ContactDetails}
+        //options={transparentNavbar}
+      />
+      <Stack.Screen
+        name="EmailDetails"
+        component={EmailDetails}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="NewNote"
+        component={NewNote}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="NewTask"
+        component={NewTask}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="TaskList"
+        component={TaskList}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="EditAccountInfo"
+        component={EditAccountInfo}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="EditSignature"
+        component={EditSignature}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="PasswordChange"
+        component={PasswordChange}
+        options={commonNavbarDynamic(data)}
+      />
+      <Stack.Screen
+        name="TutorialScreen"
+        component={TutorialScreen}
+        options={transparentNavbar}
+      />
+
+      <Stack.Screen name="NewTaskContacts" component={NewTaskContacts} />
+    </Stack.Navigator>
+  );
+}
+
+function MainTabs({navigation, route}) {
+  // - 5 SCREENS
+  return (
+    <Tab.Navigator
+      tabBarOptions={commonTabBarOptionsDynamic(route.params.theme)}>
+      <Tab.Screen
+        name={'ContactsStack'}
+        component={ContactsStack}
+        initialParams={{theme: route.params.theme}}
+        options={({navigation}) => ({
+          tabBarIcon: ({focused}) => (
+            <TabBarIcon
+              focused={focused}
+              theme={route.params.theme}
+              icon={global.icon_contacts}
+              title={'Contacts'}
+            />
+          ),
+        })}
+      />
+      <Tab.Screen
+        name={'EmailStack'}
+        component={EmailStack}
+        initialParams={{theme: route.params.theme}}
+        options={({navigation}) => ({
+          tabBarIcon: ({focused}) => (
+            <TabBarIcon
+              focused={focused}
+              theme={route.params.theme}
+              icon={global.icon_email}
+              title={'Emails'}
+            />
+          ),
+        })}
+      />
+      <Tab.Screen
+        name={'CalendarStack'}
+        component={CalendarStack}
+        initialParams={{theme: route.params.theme}}
+        options={({navigation}) => ({
+          tabBarIcon: ({focused}) => (
+            <TabBarIcon
+              focused={focused}
+              theme={route.params.theme}
+              icon={global.icon_calendar}
+              title={'Calendar'}
+            />
+          ),
+        })}
+      />
+      <Tab.Screen
+        name={'MenuStack'}
+        component={MenuStack}
+        initialParams={{theme: route.params.theme}}
+        options={({navigation}) => ({
+          tabBarIcon: ({focused}) => (
+            <TabBarIcon
+              focused={focused}
+              theme={route.params.theme}
+              icon={global.icon_menu}
+              title={'Menu'}
+            />
+          ),
+        })}
+      />
+    </Tab.Navigator>
+  );
+}
+
+function EmailComposeStack(data) {
+  // console.log("EmailComposeStack",route)
+
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="EmailCompose" component={EmailCompose} />
+      <Stack.Screen name="EmailContactList" component={EmailContactList} />
+    </Stack.Navigator>
+  );
+}
+
+function PasswordResetStack(data) {
+  console.log("PasswordResetStack",this.state.mode)
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="PasswordReset" component={PasswordReset} />
+    </Stack.Navigator>
+  );
+}
+
+function ContactsStack(data) {
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="Contacts" component={Contacts} />
+    </Stack.Navigator>
+  );
+}
+
+function PhoneTextStack(data) {
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="PhoneAndText" component={PhoneAndText} />
+    </Stack.Navigator>
+  );
+}
+
+function EmailStack(data) {
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="Emails" component={Emails} />
+    </Stack.Navigator>
+  );
+}
+
+function CalendarStack(data) {
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="CalendarTask" component={CalendarTask} />
+    </Stack.Navigator>
+  );
+}
+
+function MenuStack(data) {
+  return (
+    <Stack.Navigator screenOptions={commonNavbarDynamic(data)}>
+      <Stack.Screen name="Menu" component={Menu} options={{title: 'Menu'}} />
+    </Stack.Navigator>
+  );
+}
+
+// ============================================
+
+const TabBarIcon = ({focused, icon, title = '', theme, showNotif}) => {
+  return focused ? (
+    <View style={styles.tabIconActiveContainer}>
+      <Image
+        source={
+          theme && theme.mode === 'dark' ? global.img_navbg2 : global.img_navbg
+        }
+        style={styles.tabIconActiveBg}
+      />
+      <View style={styles.tabIconActive}>
+        <Image
+          source={icon}
+          style={[
+            global.styles.imgContain,
+            {tintColor: theme ? theme.bgPrimary : global.color_white},
+          ]}
+        />
+        {showNotif ? <Notif borderColor={global.color_theme} active /> : null}
+      </View>
+    </View>
+  ) : (
+    <View style={styles.tabIconInactiveContainer}>
+      <View style={styles.tabIconInactive}>
+        <Image
+          source={icon}
+          style={[global.styles.imgContain, {tintColor: global.color_gray}]}
+        />
+
+        {showNotif ? <Notif borderColor={theme.bgPrimary} /> : null}
+      </View>
+    </View>
+  );
+};
+
+const Notif = ({borderColor, active}) => {
+  return (
+    <View
+      style={{
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: active ? global?.color_white : global?.color_red,
+        position: 'absolute',
+        right: active ? 8 : -6,
+        top: active ? 10 : -3,
+        borderColor: borderColor,
+        borderWidth: 2,
+      }}
+    />
+  );
+};
+
+const commonTabBarOptions = {
+  inactiveTintColor: global.color_gray,
+  showLabel: false,
+  style: {
+    borderTopColor: 'transparent',
+    borderTopWidth: 0,
+    backgroundColor: 'white',
+  },
+};
+
+const commonTabBarOptionsDynamic = theme => {
+  return {
+    inactiveTintColor: global.color_gray,
+    showLabel: false,
+    style: {
+      borderTopColor: 'transparent',
+      borderTopWidth: 0,
+      backgroundColor: theme ? theme.bgPrimary : 'white',
+    },
+  };
+};
+
+const commonNavbarDynamic = (theme) => {
+  console.log("navigationOptions",theme.route.params.mode)
+
+
+  // console.log("commonNavbarDynamic", theme ? theme.bgSecondary : global.color_ltgray)
+  let newNavbar = {
+    headerShown: true,
+    headerStyle: {
+      backgroundColor: theme.route.params.mode==="light"? "#f7f7f7":'#000000',
+      // backgroundColor: theme ? theme.bgSecondary : global.color_ltgray,
+      shadowRadius: 0,
+      shadowOffset: {
+        height: 0,
+      },
+      // elevation: 0, //remove shadow on Android
+      // shadowOpacity: 0, //remove shadow on iOS
+    },
+    headerTitleStyle: {
+      alignSelf: 'center',
+      textAlign: 'center',
+      justifyContent: 'center',
+      fontFamily: 'Montserrat-Regular',
+      fontWeight: '700',
+      fontSize: 24,
+      bottom: 0,
+      color:theme.route.params.mode==="light"?'#000000':"#fff",
+      // color: theme ? theme.textPrimary : global.color_darkgray,
+    },
+    headerBackTitle: ' ',
+  };
+  return newNavbar;
+};
+
+const commonNavbar = {
+  headerShown: true,
+  headerStyle: {
+    backgroundColor: global.color_ltgray,
+    shadowRadius: 0,
+    shadowOffset: {
+      height: 0,
+    },
+    // elevation: 0, //remove shadow on Android
+    // shadowOpacity: 0, //remove shadow on iOS
+  },
+  headerTitleStyle: {
+    alignSelf: 'center',
+    textAlign: 'center',
+    justifyContent: 'center',
+    fontFamily: 'Montserrat-Regular',
+    fontWeight: '700',
+    fontSize: 24,
+    bottom: 0,
+    color: global.color_darkgray,
+  },
+  headerBackTitle: ' ',
+};
+
+const transparentNavbar = {
+  title: ' ',
+  headerTransparent: {
+    position: 'absolute',
+    backgroundColor: 'transparent',
+    zIndex: 100,
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+};
+
+const styles = {
+  tabiconStyle: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+  },
+  tabIconInactiveContainer: {
+    alignItems: 'center',
+    paddingTop: 10,
+  },
+  tabIconInactive: {
+    width: 20,
+    height: 20,
+  },
+  tabIconActiveContainer: {
+    alignItems: 'center',
+  },
+  tabIconActiveBg: {
+    position: 'absolute',
+    top: 0,
+    width: 100,
+    height: 50,
+    resizeMode: 'stretch',
+  },
+  tabIconActive: {
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    padding: 14,
+    backgroundColor: global.color_theme,
+    shadowColor: '#432587',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    top: -15,
+  },
+  notifStyle: {},
+};
+
+const mapStateToProps = ({settings}) => {
+  return {
+    settings,
+  };
+};
+
+export default connect(mapStateToProps, {getSettings, setAppMode})(Router2);
+

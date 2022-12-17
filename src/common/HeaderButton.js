@@ -23,7 +23,7 @@ export const HeaderButton = ({
       onPress={onPress} >
       <Image source={icon} style={[global.styles.imgContain, 
         { opacity: disabled ? 0.3 : 1 },
-        { tintColor: mode && mode === 'dark' ? '#000' : '#696969', }, imgStyle]} />
+        { tintColor: '#696969' }, imgStyle]} />
     </TouchableOpacity>
   )
 }

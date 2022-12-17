@@ -18,6 +18,7 @@ export const TaskItem = ({
   bgColor = global.color_white,
   textColor = global.color_darkgray,
 }) => {
+  console.log("onpress",onPress)
   return (
     <TouchableOpacity onPress={onPress} style={[styles.taskItemContainer,
     { backgroundColor: bgColor }
@@ -137,6 +138,7 @@ export const TaskCheckBox = ({
   size,
   noDimmedCheckmark
 }) => {
+  console.log("TaskCheckBox",TaskCheckBox)
   return (
     <TouchableOpacity
       onPress={onPress}

@@ -118,7 +118,7 @@ class Contacts extends Component {
           <View style={global.styles.headerButtonsContainer}>
             <HeaderButton
               icon={global.icon_plus}
-              style={{ padding: 10}}
+              style={{ padding: 10 , color:'#696969'}}
               mode={this.props.settings.theme.mode}
               onPress={() => this.addContact()}
             />
@@ -169,6 +169,7 @@ class Contacts extends Component {
         this.setState({ multiActionsCount: this.state.multiActionsCount - 1 });
       }
     }
+    
   }
 
   getContacts(flag=0) {

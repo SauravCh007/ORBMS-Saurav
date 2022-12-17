@@ -214,6 +214,7 @@ export const updateUserInfo = ({updates}) => {
         uid: user.uid,
         //first_name: 'ray',
       };
+      console.log("sending update userinfor payload ==>>>",params)
     Object.keys(params).forEach(key =>
       url.searchParams.append(key, params[key]),
     );

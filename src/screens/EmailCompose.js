@@ -218,7 +218,7 @@ class EmailCompose extends Component {
           <HeaderButton
             icon={global.icon_wrong}
             style={{padding: 10}}
-            mode={this.props.settings.theme.mode}
+            mode={this.props.settings.theme.mode==="dark"? '#ffff' : "#696969"}
             onPress={() => this.props.navigation.goBack()}
           />
         </View>
@@ -234,7 +234,7 @@ class EmailCompose extends Component {
                 ? {backgroundColor: global.color_theme, padding: 10}
                 : {},
             ]}
-            mode={this.props.settings.theme.mode}
+            mode={this.props.settings.theme.mode==="dark"? '#ffff' : "#696969"}
             onPress={() => {
               this.state.selectSchedule = !this.state.selectSchedule;
               if (Platform.OS == 'ios') {
@@ -250,7 +250,7 @@ class EmailCompose extends Component {
           <HeaderButton
             icon={global.icon_send}
             style={{padding: 8}}
-            mode={this.props.settings.theme.mode}
+            mode={this.props.settings.theme.mode==="dark"? '#ffff' : "#696969"}
             disabled={this.state.isSend}
             onPress={() => {
               this.setState({isSend: true});
@@ -793,7 +793,7 @@ class EmailCompose extends Component {
                     ...styles.datePickerStyle,
                     ...{
                       datePickerCon: {
-                        backgroundColor: this.props.settings.theme.bgSecondary,
+                        backgroundColor: this.props.settings.theme.mode==='dark'? "#696969" : "#ffffff",
                         borderTopRightRadius: 30,
                         borderTopLeftRadius: 30,
                       },
@@ -802,6 +802,9 @@ class EmailCompose extends Component {
                         color: global.color_white_3,
                         margin: 0,
                         color: this.props.settings.theme.textPrimary,
+                      },
+                      btnTextCancel:{
+                        color:this.props.settings.theme.mode==='dark'? "#ffffff" : "#696969",
                       },
                       dateInput: {
                         marginRight: -10,

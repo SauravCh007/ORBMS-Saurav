@@ -60,6 +60,7 @@ import {
   API_CMD_IMAPMOVEINBOX,
   API_CMD_IMAPMOVESPAM,
   API_CMD_IMAPMOVEARCHIVE,
+  EMAIL_SCHEDULED_SUCCESS,
 } from '../actions/types';
 import {event} from 'react-native-reanimated';
 import EmailDetails from './EmailDetails';
@@ -121,6 +122,7 @@ class Emails extends Component {
   }
 
   componentDidMount() {
+    this.refresh();
     console.log("EmailCompMount",)
     AsyncStorage.getItem('emailIndexValue').then(response => {
       if (response != '' && response != null) {
@@ -175,7 +177,7 @@ class Emails extends Component {
         <View
           style={[
             global.styles.headerButtonsContainer,
-            {balignItems: 'center'},
+            {alignItems: 'center'},
           ]}>
           <TouchableOpacity
             style={global.styles.headerButtonsContainer}
@@ -260,12 +262,13 @@ class Emails extends Component {
             />
             <HeaderButton
               icon={global.icon_compose}
+              // mode={this.props.settings.theme.mode}
               onPress={() => {
                 this.props.navigation.navigate('EmailComposeStack', {
                   currentMailbox: this.state.currentMailbox,
                 });
               }}
-              mode={this.props.settings.theme.mode}
+              mode={this.props.settings.theme.mode==="dark"? '#ffff' : "#696969"}
             />
           </View>
         ),
@@ -275,7 +278,6 @@ class Emails extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    console.log("emailCompReciveProps")
     if (nextProps.emailStatus === EMAIL_GETMAILBOXES_SUCCESS) {
       if (
         nextProps.emailMailboxes.length > 0 &&
@@ -307,7 +309,8 @@ class Emails extends Component {
           // this.toast.show(`Email${this.state.selected.length === 1 ? '' : 's'} moved successfully`, 7000);
           this.toast.show(
             `Successfully Moved to ${this.state.currentSelectMailBox}`,
-            7000,
+            3000,
+            // 7000,
           );
           this.setState(
             {
@@ -339,7 +342,8 @@ class Emails extends Component {
         // this.toast.show(`Email${this.state.selected.length === 1 ? '' : 's'} moved successfully`, 7000);
         this.toast.show(
           `Successfully Moved to ${this.state.currentSelectMailBox}`,
-          7000,
+          3000
+          // 7000,
         );
         this.setState(
           {
@@ -419,6 +423,7 @@ class Emails extends Component {
       {...props}
       scrollEnabled
       onTabLongPress={scene => {
+        this.render()
         const {route} = scene;
         props.jumpTo(route.key);
       }}
@@ -481,12 +486,14 @@ class Emails extends Component {
         refreshControl={
           <RefreshControl
             tintColor={global.color_theme2}
-            onRefresh={() => this.refresh()}
+            onRefresh={() => this.refresh(), console.log("this.props.emailStatus",this.props.emailStatus)}
+            
             refreshing={
               this.props.emailStatus === EMAIL_INBOXMAIL_LOADING ||
               this.props.emailStatus === EMAIL_SENTMAIL_LOADING ||
               this.props.emailStatus === EMAIL_TRASHMAIL_LOADING ||
-              this.props.emailStatus === EMAIL_GETMAILBOXES_LOADING
+              this.props.emailStatus === EMAIL_GETMAILBOXES_LOADING||
+              this.props.emailStatus === EMAIL_SCHEDULED_SUCCESS
             }
             progressViewOffset={1}
           />

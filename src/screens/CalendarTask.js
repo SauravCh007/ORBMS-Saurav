@@ -1562,6 +1562,7 @@ class CalendarTask extends Component {
       didToDelete: '',
       agenda: '',
       todayDate: '',
+      themMode :'',
 
       showFilter: false,
 
@@ -1578,6 +1579,10 @@ class CalendarTask extends Component {
 
 
   componentDidMount() {
+    this.header()
+  }
+
+  header () {
     this.props.getCalendarTasks
     this.props.navigation.setOptions({
       title: 'Calendar Tasks',
@@ -1611,11 +1616,12 @@ class CalendarTask extends Component {
         </View>
       ),
       headerRight: () => (
+        console.log("first",this.props.settings.theme.mode),
         <View style={global.styles.headerButtonsContainer}>
           <HeaderButton
             icon={global.icon_plus}
             style={{ padding: 10 }}
-            mode={this.props.settings.theme.mode}
+            mode={this.props.settings.theme.mode==="dark"? '#ffff' : "#696969"}
             //onPress={() => this.addContact()}
             onPress={() =>
               this.props.navigation.navigate('NewTask', {
@@ -1656,20 +1662,38 @@ class CalendarTask extends Component {
       this.onRefresh();
     }
   }
+  
 
   componentWillReceiveProps(nextProps) {
+    // console.log("show", this.props.settings)
+    // console.log("nextProps", nextProps.settings)
+   
 
+    
 
-    this.setState({ showCalander: false })
+    // if(this.props.settings.theme.mode!==nextProps.settings.theme.mode){
+    //   this.setState({ showCalander: false })
+    //   setTimeout(() => {
+    //     this.setState({ showCalander: true })
+    //   }, 1000);
+    // }
+
+    if(nextProps.settings.theme.mode!== this.props.settings.theme.mode){
+      this.setState({ showCalander: false })
+      this.header()
     setTimeout(() => {
-
       this.setState({ showCalander: true })
     }, 1000);
+    }
+
+   
+   
+
     if (nextProps.tasksStatus === TASK_DELETETASK_SUCCESS) {
       // console.log(nextProps, 'nextProps nextProps')
       this.refresh();
     }
-    console.log("show", this.state.showCalander)
+    // console.log("show", this.props)
     // }
 
     // componentWillReceiveProps(nextProps) {
@@ -1684,6 +1708,7 @@ class CalendarTask extends Component {
       tasks.map((item, index) => {
         let momentDate = moment(item.date);
         console.log('data of moment is ', momentDate);
+        console.log('data of moment is ', item.date);
         let newTitle = moment(item.date).format('YYYY-MM-DD');
         console.log('new title is as follows ', newTitle);
         if (lastItem) {
@@ -1745,6 +1770,7 @@ class CalendarTask extends Component {
       this.setState({
         calendarItems: newItems,
         agendaCalendarItem: newItems,
+        
       });
     } else {
       let momentDate = moment(this.state.calendarDate);
@@ -2233,88 +2259,88 @@ class CalendarTask extends Component {
         <View
           style={{ paddingBottom: 35, height: 350, overflow: 'hidden', }}
           onStartShouldSetResponder={() => this.closeAll()}>
-            <CalendarProvider
+          <CalendarProvider
 
-              style={{
-                // backgroundColor: this.props.settings.theme.bgSecondary,
+            style={{
+              // backgroundColor: this.props.settings.theme.bgSecondary,
 
-                backgroundColor: this.props.settings.theme.bgPrimary,
+              backgroundColor: this.props.settings.theme.bgPrimary,
 
-                position: 'relative',
-              }}
-              date={
-                this.state?.calendarItems?.length > 0 ? this.state?.todayDate : ''
-              }
-              onDateChanged={this.onDateChanged}
-              onMonthChange={this.onMonthChange}
-              showTodayButton
-              disabledOpacity={0.6}
-              theme={{
-                // calendarBackground: this.props.settings.theme.bgSecondary,
-                calendarBackground: this.props.settings.theme.bgPrimary,
-                todayButtonTextColor: global.color_theme,
-              }}
-              horizontal={true}
-              // Enable paging on horizontal, default = false
-              pagingEnabled={true}
-              todayBottomMargin={15}>
-              {
-                //this.props.weekView ?
-                this.state.weekView ? (
-                  <WeekCalendar
-                    testID={testIDs.weekCalendar.CONTAINER}
-                    firstDay={1}
-                    markedDates={this.getMarkedDates()}
-                    style={[
-                      styles.item,
-                      {
-                        backgroundColor: this.props.settings.theme.bgPrimary
-                        // backgroundColor: this.props.settings.theme.bgSecondary,
-                      },
-                    ]}
-                  />
-                ) : (
-                  <ExpandableCalendar
-                    testID={testIDs.expandableCalendar.CONTAINER}
-                    theme={{
-                      calendarBackground: this.props.settings.theme.bgPrimary,
-                      selectedDayBackgroundColor: global.color_theme,
-                      selectedDayTextColor: this.props.settings.theme.bgPrimary,
-                      selectedDotColor: this.props.settings.theme.bgPrimary,
-                      monthTextColor: this.props.settings.theme.textPrimary,
-                      arrowColor: global.color_theme,
-                      indicatorColor: global.color_theme,
-                      dotColor: global.color_theme,
-                      todayTextColor: global.color_theme,
+              position: 'relative',
+            }}
+            date={
+              this.state?.calendarItems?.length > 0 ? this.state?.todayDate : ''
+            }
+            onDateChanged={this.onDateChanged}
+            onMonthChange={this.onMonthChange}
+            showTodayButton
+            disabledOpacity={0.6}
+            theme={{
+              // calendarBackground: this.props.settings.theme.bgSecondary,
+              calendarBackground: this.props.settings.theme.bgPrimary,
+              todayButtonTextColor: global.color_theme,
+            }}
+            horizontal={true}
+            // Enable paging on horizontal, default = false
+            pagingEnabled={true}
+            todayBottomMargin={15}>
+            {
+              //this.props.weekView ?
+              this.state.weekView ? (
+                <WeekCalendar
+                  testID={testIDs.weekCalendar.CONTAINER}
+                  firstDay={1}
+                  markedDates={this.getMarkedDates()}
+                  style={[
+                    styles.item,
+                    {
+                      backgroundColor: this.props.settings.theme.bgPrimary
+                      // backgroundColor: this.props.settings.theme.bgSecondary,
+                    },
+                  ]}
+                />
+              ) : (
+                <ExpandableCalendar
+                  testID={testIDs.expandableCalendar.CONTAINER}
+                  theme={{
+                    calendarBackground: this.props.settings.theme.bgPrimary,
+                    selectedDayBackgroundColor: global.color_theme,
+                    selectedDayTextColor: this.props.settings.theme.bgPrimary,
+                    selectedDotColor: this.props.settings.theme.bgPrimary,
+                    monthTextColor: this.props.settings.theme.textPrimary,
+                    arrowColor: global.color_theme,
+                    indicatorColor: global.color_theme,
+                    dotColor: global.color_theme,
+                    todayTextColor: global.color_theme,
 
-                    }}
-                    // horizontal={false}
-                    // hideArrows
-                    // disablePan
-                    // hideKnob
-                    initialPosition={ExpandableCalendar.positions.OPEN}
-                    // calendarStyle={styles.calendar}
-                    // headerStyle={styles.calendar} // for horizontal only
-                    disableWeekScroll
-                    // theme={this.getTheme()}
-                    disableAllTouchEventsForDisabledDays
-                    firstDay={1}
-                    disablePan={true}
-                    markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
-                    leftArrowImageSource={require('../img/previous.png')}
-                    rightArrowImageSource={require('../img/next.png')}
+                  }}
+                  // horizontal={false}
+                  // hideArrows
+                  // disablePan
+                  // hideKnob
+                  initialPosition={ExpandableCalendar.positions.OPEN}
+                  // calendarStyle={styles.calendar}
+                  // headerStyle={styles.calendar} // for horizontal only
+                  disableWeekScroll
+                  // theme={this.getTheme()}
+                  disableAllTouchEventsForDisabledDays
+                  firstDay={1}
+                  disablePan={true}
+                  markedDates={this.getMarkedDates()} // {'2019-06-01': {marked: true}, '2019-06-02': {marked: true}, '2019-06-03': {marked: true}};
+                  leftArrowImageSource={require('../img/previous.png')}
+                  rightArrowImageSource={require('../img/next.png')}
 
-                  />
-                )
-              }
-              {/* <View style={styles.fixToText}>
+                />
+              )
+            }
+            {/* <View style={styles.fixToText}>
           <Button
             title="Today"
             onPress={() => this.setTodayDate()}
             color={global.color_theme}
           />
         </View> */}
-              {/* <AgendaList
+            {/* <AgendaList
           sections={this.state.agendaCalendarItem}
           extraData={this.state}
           renderItem={this.renderItem}
@@ -2345,9 +2371,9 @@ class CalendarTask extends Component {
           bgColor={this.props.settings.theme.bgPrimary}
           textColor={this.props.settings.theme.textPrimary}
         /> */}
-            </CalendarProvider>
-            
-          
+          </CalendarProvider>
+
+
         </View>
 
         <View onStartShouldSetResponder={() => this.closeAll()}>
@@ -2357,7 +2383,7 @@ class CalendarTask extends Component {
               extraData={this.state}
               renderItem={this.renderItem}
               theme={{
-                calendarBackground:this.props.settings.theme.bgSecondary,
+                calendarBackground: this.props.settings.theme.bgSecondary,
                 // calendarBackground: this.props.settings.theme.bgPrimary,
               }}
               sectionStyle={section => [
@@ -2424,14 +2450,10 @@ class CalendarTask extends Component {
           </Modal>
         </View>
       </ScrollView>
-    
     )
   }
 
-
-
   render() {
-    console.log('renderrrr', this.props.settings.theme.mode);
     return (
       this.scrollData()
     );

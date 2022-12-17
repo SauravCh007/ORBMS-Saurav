@@ -166,6 +166,7 @@ global.styles = {
     height: 30,
     borderRadius: 6,
     backgroundColor: global.color_white,
+    // backgroundColor: 'green',
     margin: 4,
     flexDirection: 'row',
     alignItems: 'center',

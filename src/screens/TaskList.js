@@ -58,6 +58,7 @@ class TaskList extends Component {
     this.state = {
       title: '',
       dateTime: '',
+      showData:false,
       isVisible: false,
       comments: '',
       status: '',
@@ -92,6 +93,7 @@ class TaskList extends Component {
 
   componentDidMount() {
     console.log("type",this.state)
+    console.log("this.props.tasks.taskSearchKey",this.props.tasks.taskSearchKey)
     this.setNavbar();
     this.props.getTaskTypes();
     // this.pageRefresh()
@@ -735,10 +737,10 @@ class TaskList extends Component {
     console.log("filter",this.state.showFilter)
     switch (route.key) {
       case 'asc':
-        list =  this.state.showFilter === undefined ? allTaskList: this.props.allTaskList;
+        list = this.state.showData == true ? this.props.allTaskList:allTaskList;
         break;
       case 'des':
-        list =this.state.showFilter === undefined ? dscTaskList: this.props.dscTaskList;
+        list = this.state.showData == true ? this.props.dscTaskList : dscTaskList;
         break;
       default:
     }
@@ -986,22 +988,22 @@ class TaskList extends Component {
           list={[
             {
               text: 'By Task Types',
-              onPress: () => this.setFilter(LISTTYPE_TASK_TYPE),
+              onPress: () => {this.setFilter(LISTTYPE_TASK_TYPE),this.setState({showData:true})},
               checked: this.state.alertListType === LISTTYPE_TASK_TYPE,
             },
             {
               text: 'By Active Tasks',
-              onPress: () => this.setFilter(LISTTYPE_ACTIVE_TASK),
+              onPress: () => {this.setFilter(LISTTYPE_ACTIVE_TASK),this.setState({showData:true})},
               checked: this.state.alertListType === LISTTYPE_ACTIVE_TASK,
             },
             {
               text: 'By Completed Tasks',
-              onPress: () => this.setFilter(LISTTYPE_COMPLETE_TASK),
+              onPress: () => {this.setFilter(LISTTYPE_COMPLETE_TASK),this.setState({showData:true})},
               checked: this.state.alertListType === LISTTYPE_COMPLETE_TASK,
             },
             {
               text: 'By All Tasks',
-              onPress: () => this.setFilter(LISTTYPE_ALL_TASK),
+              onPress: () =>{ this.setFilter(LISTTYPE_ALL_TASK),this.setState({showData:true})},
               checked: this.state.alertListType === LISTTYPE_ALL_TASK,
             },
           ]}
@@ -1010,7 +1012,7 @@ class TaskList extends Component {
             {
               text: 'Clear Filter',
               color: global.color_theme,
-              onPress: () => this.clearFilter(),
+              onPress: () => {this.clearFilter(),this.setState({showData:false})},
             },
             {
               text: 'Cancel',
